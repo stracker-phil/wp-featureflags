@@ -50,8 +50,9 @@ class FeatureFlags {
 		}
 
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 100 );
-		add_action( 'init', [ $this, 'handleToggle' ] );
-		add_action( 'plugins_loaded', [ $this, 'addFeatureFilters' ] );
+		add_action( 'init', [ $this, 'processSetFeatureState' ] );
+		
+		$this->addFeatureFilters();
 	}
 
 	protected function sanitizeFeatureFlags( array $featureFlags ) : array {
@@ -161,7 +162,7 @@ class FeatureFlags {
         </style>';
 	}
 
-	public function handleToggle() : void {
+	public function processSetFeatureState() : void {
 		if ( ! isset( $_GET['wp_toggle_flag'], $_GET['wp_nonce'] ) ||
 			! current_user_can( 'manage_options' ) ||
 			! wp_verify_nonce( $_GET['wp_nonce'], 'wp_toggle_flag' )
@@ -183,7 +184,7 @@ class FeatureFlags {
 		exit;
 	}
 
-	public function addFeatureFilters() : void {
+	protected function addFeatureFilters() : void {
 		foreach ( $this->featureFlags as $id => $flag ) {
 			$state = $this->getFeatureState( $id );
 
@@ -191,17 +192,17 @@ class FeatureFlags {
 				continue;
 			}
 
-			add_filter( $flag['filter'], fn() => $state === 'on', 99999 );
+			add_filter( $flag['filter'], fn() => 'on' === $state, 99999 );
 		}
 	}
 
-	private function getFeatureState( string $id ) : string {
+	protected function getFeatureState( string $id ) : string {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		return $states[ $id ] ?? 'default';
 	}
 
-	private function setFeatureState( string $id, string $state ) : void {
+	protected function setFeatureState( string $id, string $state ) : void {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		if ( 'default' === $state ) {
@@ -213,7 +214,7 @@ class FeatureFlags {
 		update_option( self::OPTION_NAME, $states );
 	}
 
-	private function getNextState( string $currentState ) : string {
+	protected function getNextState( string $currentState ) : string {
 		$states = [ 'default', 'on', 'off' ];
 
 		$currentIndex = array_search( $currentState, $states );
