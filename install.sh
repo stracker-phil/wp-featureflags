@@ -39,7 +39,14 @@ copy_plugin_files() {
     local plugin_path="$target_project/$PLUGINS_ROOT/$PLUGIN_NAME"
 
     cp "$source_dir/plugin.php" "$plugin_path/plugin.php"
-    cp "$source_dir/config.php" "$plugin_path/config.php"
+
+    if [ -f $source_dir/config.local.php ]; then
+    	# Use local config version.
+    	cp "$source_dir/config.local.php" "$plugin_path/config.php"
+	else
+    	# Use default config version provided by the repo.
+		cp "$source_dir/config.php" "$plugin_path/config.php"
+	fi
 }
 
 main() {

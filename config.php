@@ -1,6 +1,8 @@
 <?php
 /**
  * Feature Flags to display in the admin bar.
+ * 
+ * This file can be copied and named "config.local.php" to make local adjustments.
  */
 
 // WooCommerce PayPal Payments: 2.9.4

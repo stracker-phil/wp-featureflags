@@ -12,9 +12,22 @@
 namespace Syde\WpFeatureFlags;
 
 function getFeatureFlags() : array {
-	$flags = require __DIR__ . '/config.php';
+	$featureFlags  = [];
+	$configSources = [
+		__DIR__ . '/config.local.php',
+		__DIR__ . '/config.php',
+	];
 
-	return (array) $flags;
+	foreach ( $configSources as $path ) {
+		if ( ! file_exists( $path ) ) {
+			continue;
+		}
+
+		$featureFlags = require $path;
+		break;
+	}
+
+	return (array) $featureFlags;
 }
 
 class FeatureFlags {
