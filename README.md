@@ -27,3 +27,5 @@ bash install.sh ~/Coding/wc-pp-plugin
 To add or modify feature flags, edit the `config.php` file. This config-file must return a single array with a list of feature flags.
 
 The initial configuration file contains feature flags for the WooCommerce PayPal Payments plugin.
+
+To customize the configuration rules, copy the `config.php` file to `config.local.php` and modify its contents to your needs. The `.local.php` file is ignord by git, and not overwritten by future `git pull` actions.
