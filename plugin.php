@@ -24,7 +24,7 @@ class FeatureFlags {
 	private const OPTION_NAME = 'wp_feature_flags';
 
 	/**
-	 * Stores the effictively used feature flags.
+	 * Stores the effectively used feature flags.
 	 */
 	private array $featureFlags = [];
 
@@ -83,6 +83,7 @@ class FeatureFlags {
 			if ( 'default' === $state ) {
 				$icon         = 'minus';
 				$defaultValue = null;
+				$stateLabel   = 'Default';
 
 				if ( is_callable( $flag['default'] ) ) {
 					$defaultValue = call_user_func( $flag['default'] );
@@ -90,18 +91,18 @@ class FeatureFlags {
 					$defaultValue = $flag['default'];
 				}
 				if ( null !== $defaultValue ) {
-					$stateLabel = $defaultValue ? 'On' : 'Off';
+					$stateLabel .= $defaultValue ? ': On' : ': Off';
 				}
 			} else {
 				$icon       = 'on' === $state ? 'yes' : 'no';
-				$stateLabel = '';
+				$stateLabel = 'on' === $state ? 'On' : 'Off';
 			}
 
 			$title = sprintf(
 				'<i class="dashicons dashicons-%s"></i> %s%s',
 				esc_attr( $icon ),
 				esc_html( $flag['label'] ),
-				$stateLabel ? ' (' . esc_html( $stateLabel ) . ')' : ''
+				'<span class="feature-state">' . esc_html( $stateLabel ) . '</span>'
 			);
 
 			$adminBar->add_node( [
@@ -117,17 +118,32 @@ class FeatureFlags {
 		}
 
 		echo '<style>
-            #wp-admin-bar-wp-feature-flags .dashicons {
-                font: normal 20px/1 dashicons;
-                vertical-align: middle;
-                margin-right: 4px;
+            #wp-admin-bar-wp-feature-flags ul a.ab-item {
+            	display: flex;
 
-                &.dashicons-yes {
-                    color: #46b450;
+	            .dashicons {
+	                font: normal 20px/1 dashicons;
+	                vertical-align: middle;
+	                margin-right: 4px;
+
+	                &:before {
+	                	vertical-align: middle;
+	                }
+	                &.dashicons-yes {
+	                    color: #46b450;
+	                }
+	                &.dashicons-no {
+	                    color: #cc0000;
+	                }
                 }
-                &.dashicons-no {
-                    color: #cc0000;
-                }
+
+                .feature-state {
+			        justify-content: flex-end;
+			        flex: auto;
+			        display: flex;
+			        margin-left: 10px;
+                	font-size: 0.85em;
+           		}
             }
         </style>';
 	}
