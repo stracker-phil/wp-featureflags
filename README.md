@@ -9,6 +9,8 @@ While active, the plugin adds a new menu to the top admin-bar called "Feature Fl
 
 Feature flags are set via simple WP filters that return true or false. The filters are added during the `plugins_loaded` event - so basically, this plugin can change _any_ WP filter to return a boolean value.
 
+![](screenshot.png)
+
 
 ## Installation
 
