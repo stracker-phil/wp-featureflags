@@ -359,15 +359,6 @@ class FeatureFlags {
 
 		update_option( self::OPTION_NAME, $states );
 	}
-
-	protected function getNextState( string $currentState ) : string {
-		$states = [ 'default', 'on', 'off' ];
-
-		$currentIndex = array_search( $currentState, $states );
-		$nextIndex    = ( $currentIndex + 1 ) % count( $states );
-
-		return $states[ $nextIndex ];
-	}
 }
 
 function init() : FeatureFlags {
