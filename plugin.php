@@ -184,7 +184,7 @@ class FeatureFlags {
 		exit;
 	}
 
-	protected function addFeatureFilters() : void {
+	public function addFeatureFilters() : void {
 		foreach ( $this->featureFlags as $id => $flag ) {
 			$state = $this->getFeatureState( $id );
 
@@ -196,13 +196,13 @@ class FeatureFlags {
 		}
 	}
 
-	protected function getFeatureState( string $id ) : string {
+	private function getFeatureState( string $id ) : string {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		return $states[ $id ] ?? 'default';
 	}
 
-	protected function setFeatureState( string $id, string $state ) : void {
+	private function setFeatureState( string $id, string $state ) : void {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		if ( 'default' === $state ) {
