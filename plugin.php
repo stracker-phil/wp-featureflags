@@ -52,7 +52,7 @@ class FeatureFlags {
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 100 );
 		add_action( 'init', [ $this, 'processSetFeatureState' ] );
 		
-		$this->addFeatureFilters();
+		add_action( 'plugins_loaded', [ $this, 'addFeatureFilters' ] );
 	}
 
 	protected function sanitizeFeatureFlags( array $featureFlags ) : array {
@@ -192,7 +192,7 @@ class FeatureFlags {
 				continue;
 			}
 
-			add_filter( $flag['filter'], fn() => 'on' === $state, 99999 );
+			add_filter( $flag['filter'], static fn() => 'on' === $state, 99999 );
 		}
 	}
 
