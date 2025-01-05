@@ -50,8 +50,7 @@ class FeatureFlags {
 		}
 
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 100 );
-		add_action( 'init', [ $this, 'processSetFeatureState' ] );
-		
+		add_action( 'init', [ $this, 'handleToggle' ] );
 		add_action( 'plugins_loaded', [ $this, 'addFeatureFilters' ] );
 	}
 
@@ -83,54 +82,88 @@ class FeatureFlags {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		$menuId = 'wp-feature-flags';
 
 		$adminBar->add_menu( [
-			'id'    => 'wp-feature-flags',
+			'id'    => $menuId,
 			'title' => 'Feature Flags',
 			'href'  => '#',
 			'meta'  => [ 'title' => 'Feature Flag Manager' ],
 		] );
 
 		foreach ( $this->featureFlags as $id => $flag ) {
-			$state = $this->getFeatureState( $id );
-
-			if ( 'default' === $state ) {
-				$icon         = 'minus';
-				$defaultValue = null;
-				$stateLabel   = 'Default';
-
-				if ( is_callable( $flag['default'] ) ) {
-					$defaultValue = call_user_func( $flag['default'] );
-				} elseif ( is_bool( $flag['default'] ) ) {
-					$defaultValue = $flag['default'];
-				}
-				if ( null !== $defaultValue ) {
-					$stateLabel .= $defaultValue ? ': On' : ': Off';
-				}
-			} else {
-				$icon       = 'on' === $state ? 'yes' : 'no';
-				$stateLabel = 'on' === $state ? 'On' : 'Off';
-			}
-
-			$title = sprintf(
-				'<i class="dashicons dashicons-%s"></i> %s%s',
-				esc_attr( $icon ),
-				esc_html( $flag['label'] ),
-				'<span class="feature-state">' . esc_html( $stateLabel ) . '</span>'
-			);
+			$featureId    = $menuId . '_' . sanitize_key( $id );
+			$state        = $this->getFeatureState( $id );
+			$defaultValue = $this->getDefaultValue( $flag );
 
 			$adminBar->add_node( [
-				'parent' => 'wp-feature-flags',
-				'id'     => 'wp-flag-' . sanitize_key( $id ),
-				'title'  => $title,
-				'href'   => add_query_arg( [
-					'wp_toggle_flag' => urlencode( $id ),
-					'wp_nonce'       => wp_create_nonce( 'wp_toggle_flag' ),
-				] ),
+				'parent' => $menuId,
+				'id'     => $featureId,
+				'title'  => esc_html( $flag['label'] ),
+				'href'   => '#',
 				'meta'   => [ 'class' => 'wp-feature-flag-item' ],
 			] );
+
+			$states = [
+				'default' => 'Default' . ( $defaultValue !== null
+						? ': ' . ( $defaultValue
+							? 'On'
+							: 'Off' )
+						: '' ),
+				'on'      => 'Force: <strong>On</strong>',
+				'off'     => 'Force: <strong>Off</strong>',
+			];
+
+			foreach ( $states as $stateKey => $stateLabel ) {
+				$icon    = $this->getStateIcon( $stateKey, $state );
+				$stateId = $featureId . '_' . sanitize_key( $stateKey );
+
+				$adminBar->add_node( [
+					'parent' => $featureId,
+					'id'     => $stateId,
+					'title'  => $icon . ' ' . $stateLabel,
+					'href'   => '#',
+					'meta'   => [
+						'class'   => 'wp-feature-flag-state' . ( $state === $stateKey
+								? ' active'
+								: '' ),
+						// Very dirty hack.
+						'onclick' => wp_json_encode( [
+							'flagId'    => esc_attr( $id ),
+							'flagState' => esc_attr( $stateKey ),
+						] ),
+					],
+				] );
+			}
 		}
 
+		$this->addAdminBarStyles();
+		$this->addAdminBarScript();
+	}
+
+	private function getStateIcon( $stateKey, $currentState ) {
+		if ( $stateKey === 'on' ) {
+			return '<i class="dashicons dashicons-yes"></i>';
+		}
+		if ( $stateKey === 'off' ) {
+			return '<i class="dashicons dashicons-no"></i>';
+		}
+
+		return '<i class="dashicons dashicons-minus"></i>';
+	}
+
+	private function getDefaultValue( $flag ) {
+		if ( is_callable( $flag['default'] ) ) {
+			return call_user_func( $flag['default'] );
+		}
+		if ( is_bool( $flag['default'] ) ) {
+			return $flag['default'];
+		}
+
+		return null;
+	}
+
+	private function addAdminBarStyles() {
 		echo '<style>
             #wp-admin-bar-wp-feature-flags ul a.ab-item {
             	display: flex;
@@ -162,26 +195,39 @@ class FeatureFlags {
         </style>';
 	}
 
-	public function processSetFeatureState() : void {
-		if ( ! isset( $_GET['wp_toggle_flag'], $_GET['wp_nonce'] ) ||
-			! current_user_can( 'manage_options' ) ||
-			! wp_verify_nonce( $_GET['wp_nonce'], 'wp_toggle_flag' )
-		) {
+	private function addAdminBarScript() {
+	}
+
+	public function handleToggle() : void {
+		if ( ! isset( $_REQUEST['action'] ) || $_REQUEST['action'] !== 'wp_toggle_feature_flag' ) {
 			return;
 		}
 
-		$id = sanitize_text_field( urldecode( $_GET['wp_toggle_flag'] ) );
-		if ( ! array_key_exists( $id, $this->featureFlags ) ) {
-			wp_die( 'Invalid feature flag' );
+		if ( ! isset( $_REQUEST['id'], $_REQUEST['state'], $_REQUEST['nonce'] )
+			|| ! current_user_can( 'manage_options' )
+			|| ! wp_verify_nonce( $_REQUEST['nonce'], 'wp_toggle_feature_flag' )
+		) {
+			wp_send_json_error( 'Invalid request' );
+
+			return;
 		}
 
-		$this->setFeatureState(
-			$id,
-			$this->getNextState( $this->getFeatureState( $id ) )
-		);
+		$id    = sanitize_text_field( $_REQUEST['id'] );
+		$state = sanitize_text_field( $_REQUEST['state'] );
 
-		wp_safe_redirect( remove_query_arg( [ 'wp_toggle_flag', 'wp_nonce' ] ) );
-		exit;
+		if ( ! array_key_exists( $id, $this->featureFlags )
+			|| ! in_array( $state, [
+				'default',
+				'on',
+				'off',
+			] ) ) {
+			wp_send_json_error( 'Invalid feature flag or state' );
+
+			return;
+		}
+
+		$this->setFeatureState( $id, $state );
+		wp_send_json_success( [ 'id' => $id, 'state' => $state ] );
 	}
 
 	public function addFeatureFilters() : void {
@@ -229,6 +275,7 @@ function init() : FeatureFlags {
 
 	if ( null === $Instance ) {
 		$Instance = new FeatureFlags( getFeatureFlags() );
+		add_action( 'wp_ajax_wp_toggle_feature_flag', [ $Instance, 'handleToggle' ] );
 	}
 
 	return $Instance;
