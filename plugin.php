@@ -164,38 +164,138 @@ class FeatureFlags {
 	}
 
 	private function addAdminBarStyles() {
-		echo '<style>
-            #wp-admin-bar-wp-feature-flags ul a.ab-item {
-            	display: flex;
+		?>
+		<style>
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item > .ab-item {
+				font-weight: bold;
+			}
 
-	            .dashicons {
-	                font: normal 20px/1 dashicons;
-	                vertical-align: middle;
-	                margin-right: 4px;
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-state {
+				padding-left: 10px !important;
+			}
 
-	                &:before {
-	                	vertical-align: middle;
-	                }
-	                &.dashicons-yes {
-	                    color: #46b450;
-	                }
-	                &.dashicons-no {
-	                    color: #cc0000;
-	                }
-                }
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item[data-current-state="default"],
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-state[data-flag-state="default"] {
+				--feature-accent: #fff;
+			}
 
-                .feature-state {
-			        justify-content: flex-end;
-			        flex: auto;
-			        display: flex;
-			        margin-left: 10px;
-                	font-size: 0.85em;
-           		}
-            }
-        </style>';
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item[data-current-state="on"],
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-state[data-flag-state="on"] {
+				--feature-accent: #46b450;
+			}
+
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item[data-current-state="off"],
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-state[data-flag-state="off"] {
+				--feature-accent: #cc0000;
+			}
+
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item > a .dashicons,
+			#wp-admin-bar-wp-feature-flags .wp-feature-flag-state.active a .dashicons {
+				color: var(--feature-accent, #fff);
+			}
+
+			#wpadminbar #wp-admin-bar-wp-feature-flags .wp-feature-flag-state.active a strong {
+				text-decoration: underline;
+			}
+
+			#wp-admin-bar-wp-feature-flags .dashicons {
+				font: normal 20px/1 dashicons;
+				vertical-align: middle;
+				margin-right: 4px;
+			}
+		</style>
+		<?php
 	}
 
 	private function addAdminBarScript() {
+		?>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const featureItems = document.querySelectorAll('.wp-feature-flag-item');
+
+				function initFeature(featureParent) {
+					const stateItems = featureParent.querySelectorAll('.wp-feature-flag-state');
+					stateItems.forEach(initFeatureChild);
+
+					setFeatureState(featureParent);
+				}
+
+				function initFeatureChild(child) {
+					const link = child.querySelector('a[onclick]');
+					const data = JSON.parse(link.getAttribute('onclick'));
+					child.dataset.flagId = data.flagId;
+					child.dataset.flagState = data.flagState;
+					link.removeAttribute('onclick');
+
+					child.addEventListener('click', function(event) {
+						event.preventDefault();
+						wpToggleFeatureFlag(child);
+					});
+				}
+
+				featureItems.forEach(initFeature);
+			});
+
+			function wpToggleFeatureFlag(item) {
+				const id = item.dataset.flagId;
+				const state = item.dataset.flagState;
+
+				const xhr = new XMLHttpRequest();
+				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+				xhr.onload = function() {
+					if (xhr.status === 200) {
+						const response = JSON.parse(xhr.responseText);
+						if (response.success) {
+							updateAdminBarItem(item, state);
+						}
+					}
+				};
+				xhr.send('action=wp_toggle_feature_flag&id=' + encodeURIComponent(id) + '&state=' + encodeURIComponent(
+					state) + '&nonce=<?php echo wp_create_nonce( 'wp_toggle_feature_flag' ); ?>');
+			}
+
+			function updateAdminBarItem(item, newState) {
+				const featureParent = item.closest('.wp-feature-flag-item');
+				const stateItems = featureParent.querySelectorAll('.wp-feature-flag-state');
+
+				stateItems.forEach(function(child) {
+					if (child.dataset.flagState === newState) {
+						child.classList.add('active');
+					} else {
+						child.classList.remove('active');
+					}
+				});
+
+				setFeatureState(featureParent, newState);
+			}
+
+			function setFeatureState(featureParent) {
+				const stateItems = featureParent.querySelectorAll('.wp-feature-flag-state');
+				const activeItem = Array.from(stateItems)
+					.find((child) => child.classList.contains('active'));
+
+				featureParent.dataset.currentState = activeItem?.dataset.flagState ?? 'default';
+
+				// Update the parent link's dashicon
+				const parentLink = featureParent.querySelector('.ab-item');
+				const activeDashicon = activeItem ? activeItem.querySelector('.dashicons') : null;
+
+				if (parentLink && activeDashicon) {
+					const existingIcon = parentLink.querySelector('.dashicons');
+					if (existingIcon) {
+						existingIcon.remove();
+					}
+
+					if (activeDashicon) {
+						const newIcon = activeDashicon.cloneNode(true);
+						parentLink.insertBefore(newIcon, parentLink.firstChild);
+					}
+				}
+			}
+		</script>
+		<?php
 	}
 
 	public function handleToggle() : void {
