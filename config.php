@@ -1,12 +1,13 @@
 <?php
 /**
  * Feature Flags to display in the admin bar.
- * 
+ *
  * This file can be copied and named "config.local.php" to make local adjustments.
  */
 
 // WooCommerce PayPal Payments: 2.9.4
 $wc_pp_feature_flags = [
+	// Feature flags.
 	'wcpp/applepay_enabled'              => [
 		'label'   => 'Apple Pay',
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.applepay_enabled',
@@ -42,6 +43,13 @@ $wc_pp_feature_flags = [
 		'label'   => 'Settings UI',
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.settings_enabled',
 		'default' => static fn() => getenv( 'PCP_SETTINGS_ENABLED' ) === '1',
+	],
+
+	// Plugin settings.
+	'wcpp/logging'                       => [
+		'label'   => 'Logging',
+		'filter'  => 'woocommerce_paypal_payments_is_logging_enabled',
+		'default' => false,
 	],
 ];
 
