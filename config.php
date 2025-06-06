@@ -34,6 +34,26 @@ $wc_pp_feature_flags = [
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.save_payment_methods_enabled',
 		'default' => static fn() => getenv( 'PCP_SAVE_PAYMENT_METHODS' ) !== '0',
 	],
+	'wcpp/paylater_configurator_enabled' => [
+		'label'   => 'PayLater Configurator',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.paylater_configurator_enabled',
+		'default' => static fn() => getenv( 'PCP_PAYLATER_CONFIGURATOR' ) !== '0'
+	],
+	'wcpp/paylater_block_enabled'        => [
+		'label'   => 'PayLater Block',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.paylater_block_enabled',
+		'default' => static fn() => getenv( 'PCP_PAYLATER_BLOCK' ) !== '0'
+	],
+	'wcpp/paylater_wc_blocks_enabled'    => [
+		'label'   => 'PayLater WC Blocks',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.paylater_wc_blocks_enabled',
+		'default' => static fn() => getenv( 'PCP_PAYLATER_WC_BLOCKS' ) !== '0'
+	],
+	'wcpp/paylater_wc_blocks_cart_enabled'    => [
+		'label'   => 'PayLater WC Blocks (cart under totals)',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.paylater_wc_blocks_cart_under_totals_enabled',
+		'default' => true,
+	],
 	'wcpp/axo_enabled'                   => [
 		'label'   => 'Fastlane',
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.axo_enabled',
