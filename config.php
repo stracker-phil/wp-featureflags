@@ -44,6 +44,11 @@ $wc_pp_feature_flags = [
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.settings_enabled',
 		'default' => static fn() => getenv( 'PCP_SETTINGS_ENABLED' ) === '1',
 	],
+	'wcpp/contact_module_enabled'        => [
+		'label'   => 'Contact Module',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.contact_module_enabled',
+		'default' => static fn() => getenv( 'PCP_CONTACT_MODULE_ENABLED' ) === '1',
+	],
 
 	// Plugin settings.
 	'wcpp/logging'                       => [
