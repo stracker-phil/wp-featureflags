@@ -3,48 +3,80 @@
  * @formatter:off
  * Plugin Name: Feature-Flag Manager
  * Plugin URI:  https://github.com/stracker-phil/wp-featureflags
- * Description: Development utility that allows toggling feature flags via WP filters
- * Author:      Philipp Stracker (Syde)
- * Version:     1.1.0
+ * Description: Development utility that allows toggling feature flags and running quick actions via the WP admin bar
+ * Author:      Philipp Stracker
+ * Version:     1.2.0
  * @formatter:on
  */
 
 namespace Syde\WpFeatureFlags;
 
-function getFeatureFlags() : array {
-	$featureFlags  = [];
-	$configSources = [
-		__DIR__ . '/config.local.php',
-		__DIR__ . '/config.php',
-	];
+class ConfigLoader {
+	private array $fileNames;
 
-	foreach ( $configSources as $path ) {
-		if ( ! file_exists( $path ) ) {
-			continue;
-		}
-
-		$featureFlags = require $path;
-		break;
+	public function __construct( array $fileNames ) {
+		$this->fileNames = $fileNames;
 	}
 
-	return (array) $featureFlags;
+	public function load() : array {
+		foreach ( $this->fileNames as $fileName ) {
+			$path = __DIR__ . '/' . $fileName;
+			if ( file_exists( $path ) ) {
+				return (array) require $path;
+			}
+		}
+
+		return [];
+	}
 }
 
-class FeatureFlags {
-	/**
-	 * @var string Option name to store all feature flags
-	 */
+abstract class AdminBarMenu {
+	protected string $menuId;
+	protected string $menuTitle;
+
+	protected function addTopLevelMenu( $adminBar ) : bool {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$adminBar->add_menu( [
+			'id'    => $this->menuId,
+			'title' => $this->menuTitle,
+			'href'  => '#',
+			'meta'  => [ 'title' => $this->menuTitle ],
+		] );
+
+		return true;
+	}
+
+	protected function isGroupHeading( array $item ) : bool {
+		return ! empty( $item['label'] )
+			&& count( $item ) === 1;
+	}
+
+	protected function addGroupHeading( $adminBar, string $id, array $item ) : void {
+		$adminBar->add_node( [
+			'parent' => $this->menuId,
+			'id'     => $this->menuId . '_heading_' . sanitize_key( $id ),
+			'title'  => esc_html( $item['label'] ),
+			'href'   => false,
+			'meta'   => [ 'class' => 'wp-feature-group-heading' ],
+		] );
+	}
+
+	abstract public function addAdminBarItems( $adminBar ) : void;
+}
+
+class FeatureFlags extends AdminBarMenu {
 	private const OPTION_NAME = 'wp_feature_flags';
 
-	/**
-	 * Stores the effectively used feature flags.
-	 */
 	private array $featureFlags = [];
 
 	public function __construct( array $featureFlags ) {
+		$this->menuId    = 'wp-feature-flags';
+		$this->menuTitle = 'Feature Flags';
 		$this->featureFlags = $this->sanitizeFeatureFlags( $featureFlags );
 
-		// No active/valid flags defined. We can stop here.
 		if ( ! $this->featureFlags ) {
 			return;
 		}
@@ -58,11 +90,18 @@ class FeatureFlags {
 		$validFlags = [];
 
 		foreach ( $featureFlags as $id => $flag ) {
+			if ( empty( $flag ) || ! is_array( $flag ) || empty( $flag['label'] ) ) {
+				continue;
+			}
+
+			// Group heading: label-only item.
+			if ( count( $flag ) === 1 ) {
+				$validFlags[ $id ] = $flag;
+				continue;
+			}
+
 			if (
-				empty( $flag )
-				|| ! is_array( $flag )
-				|| empty( $flag['label'] )
-				|| empty( $flag['filter'] )
+				empty( $flag['filter'] )
 				|| false === ( $flag['display'] ?? true )
 			) {
 				continue;
@@ -79,25 +118,22 @@ class FeatureFlags {
 	}
 
 	public function addAdminBarItems( $adminBar ) : void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! $this->addTopLevelMenu( $adminBar ) ) {
 			return;
 		}
-		$menuId = 'wp-feature-flags';
-
-		$adminBar->add_menu( [
-			'id'    => $menuId,
-			'title' => 'Feature Flags',
-			'href'  => '#',
-			'meta'  => [ 'title' => 'Feature Flag Manager' ],
-		] );
 
 		foreach ( $this->featureFlags as $id => $flag ) {
-			$featureId    = $menuId . '_' . sanitize_key( $id );
+			if ( $this->isGroupHeading( $flag ) ) {
+				$this->addGroupHeading( $adminBar, $id, $flag );
+				continue;
+			}
+
+			$featureId    = $this->menuId . '_' . sanitize_key( $id );
 			$state        = $this->getFeatureState( $id );
 			$defaultValue = $this->getDefaultValue( $flag );
 
 			$adminBar->add_node( [
-				'parent' => $menuId,
+				'parent' => $this->menuId,
 				'id'     => $featureId,
 				'title'  => esc_html( $flag['label'] ),
 				'href'   => '#',
@@ -166,6 +202,14 @@ class FeatureFlags {
 	private function addAdminBarStyles() {
 		?>
 		<style>
+			#wp-admin-bar-wp-feature-flags .wp-feature-group-heading > .ab-item {
+				opacity: 0.6;
+				text-transform: uppercase;
+				font-size: 11px !important;
+				pointer-events: none;
+				cursor: default;
+			}
+
 			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item > .ab-item {
 				font-weight: bold;
 			}
@@ -361,15 +405,246 @@ class FeatureFlags {
 	}
 }
 
-function init() : FeatureFlags {
-	static $Instance = null;
+class FeatureActions extends AdminBarMenu {
+	private const NONCE_ACTION = 'wp_feature_action';
 
-	if ( null === $Instance ) {
-		$Instance = new FeatureFlags( getFeatureFlags() );
-		add_action( 'wp_ajax_wp_toggle_feature_flag', [ $Instance, 'handleToggle' ] );
+	private array $actions = [];
+
+	public function __construct( array $actions ) {
+		$this->menuId    = 'wp-feature-actions';
+		$this->menuTitle = 'Feature Actions';
+		$this->actions   = $this->sanitizeActions( $actions );
+
+		if ( ! $this->actions ) {
+			return;
+		}
+
+		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 101 );
 	}
 
-	return $Instance;
+	private function sanitizeActions( array $actions ) : array {
+		$valid = [];
+
+		foreach ( $actions as $id => $action ) {
+			if ( empty( $action ) || ! is_array( $action ) || empty( $action['label'] ) ) {
+				continue;
+			}
+
+			// Group heading: label-only item.
+			if ( count( $action ) === 1 ) {
+				$valid[ $id ] = $action;
+				continue;
+			}
+
+			if ( empty( $action['changes'] ) || ! is_array( $action['changes'] ) ) {
+				continue;
+			}
+
+			$validChanges = [];
+			foreach ( $action['changes'] as $change ) {
+				if ( ! is_array( $change ) || empty( $change[0] ) ) {
+					continue;
+				}
+
+				$type = $change[0];
+				if ( 'set_option' === $type && isset( $change[1], $change[2] ) ) {
+					$validChanges[] = $change;
+				} elseif ( 'set_option_key' === $type && isset( $change[1], $change[2], $change[3] ) ) {
+					$validChanges[] = $change;
+				} elseif ( 'delete_option' === $type && isset( $change[1] ) ) {
+					$validChanges[] = $change;
+				} elseif ( 'do_action' === $type && isset( $change[1] ) ) {
+					$validChanges[] = $change;
+				}
+			}
+
+			if ( ! $validChanges ) {
+				continue;
+			}
+
+			$action['changes'] = $validChanges;
+			$valid[ $id ]      = $action;
+		}
+
+		return $valid;
+	}
+
+	public function addAdminBarItems( $adminBar ) : void {
+		if ( ! $this->addTopLevelMenu( $adminBar ) ) {
+			return;
+		}
+
+		foreach ( $this->actions as $id => $action ) {
+			if ( $this->isGroupHeading( $action ) ) {
+				$this->addGroupHeading( $adminBar, $id, $action );
+				continue;
+			}
+
+			$nodeId = $this->menuId . '_' . sanitize_key( $id );
+
+			$adminBar->add_node( [
+				'parent' => $this->menuId,
+				'id'     => $nodeId,
+				'title'  => esc_html( $action['label'] ),
+				'href'   => '#',
+				'meta'   => [
+					'class'   => 'wp-feature-action-item',
+					'onclick' => wp_json_encode( [
+						'actionId' => esc_attr( $id ),
+					] ),
+				],
+			] );
+		}
+
+		$this->addAdminBarStyles();
+		$this->addAdminBarScript();
+	}
+
+	private function addAdminBarStyles() {
+		?>
+		<style>
+			#wp-admin-bar-wp-feature-actions .wp-feature-group-heading > .ab-item {
+				opacity: 0.6;
+				text-transform: uppercase;
+				font-size: 11px !important;
+				pointer-events: none;
+				cursor: default;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-action-item > .ab-item {
+				cursor: pointer;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-action-item.running > .ab-item {
+				opacity: 0.5;
+				pointer-events: none;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-action-item.done > .ab-item {
+				color: #46b450 !important;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-action-item.error > .ab-item {
+				color: #cc0000 !important;
+			}
+		</style>
+		<?php
+	}
+
+	private function addAdminBarScript() {
+		?>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const actionItems = document.querySelectorAll('.wp-feature-action-item');
+
+				actionItems.forEach(function(item) {
+					const link = item.querySelector('a[onclick]');
+					const data = JSON.parse(link.getAttribute('onclick'));
+					item.dataset.actionId = data.actionId;
+					link.removeAttribute('onclick');
+
+					item.addEventListener('click', function(event) {
+						event.preventDefault();
+						wpRunFeatureAction(item);
+					});
+				});
+			});
+
+			function wpRunFeatureAction(item) {
+				if (item.classList.contains('running')) {
+					return;
+				}
+
+				const id = item.dataset.actionId;
+
+				item.classList.remove('done', 'error');
+				item.classList.add('running');
+
+				const xhr = new XMLHttpRequest();
+				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+				xhr.onload = function() {
+					item.classList.remove('running');
+					if (xhr.status === 200) {
+						const response = JSON.parse(xhr.responseText);
+						item.classList.add(response.success ? 'done' : 'error');
+					} else {
+						item.classList.add('error');
+					}
+				};
+
+				xhr.onerror = function() {
+					item.classList.remove('running');
+					item.classList.add('error');
+				};
+
+				xhr.send(
+					'action=wp_run_feature_action'
+					+ '&id=' + encodeURIComponent(id)
+					+ '&nonce=<?php echo wp_create_nonce( self::NONCE_ACTION ); ?>'
+				);
+			}
+		</script>
+		<?php
+	}
+
+	public function handleAction() : void {
+		if ( ! isset( $_REQUEST['id'], $_REQUEST['nonce'] )
+			|| ! current_user_can( 'manage_options' )
+			|| ! wp_verify_nonce( $_REQUEST['nonce'], self::NONCE_ACTION )
+		) {
+			wp_send_json_error( 'Invalid request' );
+
+			return;
+		}
+
+		$id = sanitize_text_field( $_REQUEST['id'] );
+
+		if ( ! array_key_exists( $id, $this->actions ) ) {
+			wp_send_json_error( 'Unknown action' );
+
+			return;
+		}
+
+		$action = $this->actions[ $id ];
+
+		foreach ( $action['changes'] as $change ) {
+			$type = $change[0];
+
+			if ( 'set_option' === $type ) {
+				update_option( $change[1], $change[2] );
+			} elseif ( 'set_option_key' === $type ) {
+				$option          = get_option( $change[1], [] );
+				$option[ $change[2] ] = $change[3];
+				update_option( $change[1], $option );
+			} elseif ( 'delete_option' === $type ) {
+				delete_option( $change[1] );
+			} elseif ( 'do_action' === $type ) {
+				do_action( ...array_slice( $change, 1 ) );
+			}
+		}
+
+		wp_send_json_success( [ 'id' => $id ] );
+	}
+}
+
+function init() : void {
+	static $initialized = false;
+
+	if ( $initialized ) {
+		return;
+	}
+	$initialized = true;
+
+	$flagsLoader   = new ConfigLoader( [ 'flags.local.php', 'config.local.php', 'flags.php', 'config.php' ] );
+	$actionsLoader = new ConfigLoader( [ 'actions.local.php', 'actions.php' ] );
+
+	$featureFlags = new FeatureFlags( $flagsLoader->load() );
+	add_action( 'wp_ajax_wp_toggle_feature_flag', [ $featureFlags, 'handleToggle' ] );
+
+	$featureActions = new FeatureActions( $actionsLoader->load() );
+	add_action( 'wp_ajax_wp_run_feature_action', [ $featureActions, 'handleAction' ] );
 }
 
 init();
