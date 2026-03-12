@@ -72,15 +72,15 @@ $wc_pp_feature_flags = [
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.contact_module_enabled',
 		'default' => static fn() => getenv( 'PCP_CONTACT_MODULE_ENABLED' ) === '1',
 	],
-	'wcpp/pwc_enabled'                   => [
+	'wcpp/pwc_enabled'                     => [
 		'label'   => 'Pay with Crypto',
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.pwc_enabled',
 		'default' => static fn() => getenv( 'PCP_PWC_ENABLED' ) === '1',
 	],
-	'wcpp/agentic_commerce_enabled'      => [
-		'label'   => 'Agentic Commerce',
-		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.agentic_commerce_enabled',
-		'default' => static fn() => getenv( 'PCP_AGENTIC_COMMERCE_ENABLED' ) === '1',
+	'wcpp/store_sync'                      => [
+		'label'   => 'Store Sync',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.store_sync_enabled',
+		'default' => static fn() => getenv( 'PCP_STORE_SYNC_ENABLED' ) === '1',
 	],
 
 	// Plugin settings.
