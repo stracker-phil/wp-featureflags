@@ -568,7 +568,12 @@ class FeatureActions extends AdminBarMenu {
 					item.classList.remove('running');
 					if (xhr.status === 200) {
 						const response = JSON.parse(xhr.responseText);
-						item.classList.add(response.success ? 'done' : 'error');
+						if (response.success) {
+							item.classList.add('done');
+							window.location.reload();
+						} else {
+							item.classList.add('error');
+						}
 					} else {
 						item.classList.add('error');
 					}
