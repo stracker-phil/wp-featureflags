@@ -33,6 +33,19 @@ prepare_plugin_directory() {
     mkdir -p "$plugin_path"
 }
 
+copy_config_file() {
+    local source_dir="$1"
+    local plugin_path="$2"
+    local base_name="$3"
+    local target_name="${4:-$base_name}"
+
+    if [ -f "$source_dir/${base_name%.php}.local.php" ]; then
+      cp "$source_dir/${base_name%.php}.local.php" "$plugin_path/$target_name"
+    elif [ -f "$source_dir/$base_name" ]; then
+      cp "$source_dir/$base_name" "$plugin_path/$target_name"
+    fi
+}
+
 copy_plugin_files() {
     local source_dir="$1"
     local target_project="$2"
@@ -40,13 +53,8 @@ copy_plugin_files() {
 
     cp "$source_dir/plugin.php" "$plugin_path/plugin.php"
 
-    if [ -f $source_dir/config.local.php ]; then
-    	# Use local config version.
-    	cp "$source_dir/config.local.php" "$plugin_path/config.php"
-	else
-    	# Use default config version provided by the repo.
-		cp "$source_dir/config.php" "$plugin_path/config.php"
-	fi
+    copy_config_file "$source_dir" "$plugin_path" "flags.php"
+    copy_config_file "$source_dir" "$plugin_path" "actions.php"
 }
 
 main() {
