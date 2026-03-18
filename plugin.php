@@ -673,4 +673,9 @@ add_action( 'plugins_loaded', static function (): void {
 
 	$featureActions = new FeatureActions( $actionsLoader->load() );
 	add_action( 'wp_ajax_wp_run_feature_action', [ $featureActions, 'handleAction' ] );
+
+	$snippet_file = __DIR__ . '/snippets.local.php';
+	if ( file_exists( $snippet_file ) ) {
+		require_once $snippet_file;
+	}
 } );

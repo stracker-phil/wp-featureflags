@@ -1,4 +1,7 @@
 <?php
+/**
+ * Your personal feature flags. Review the "flags.php" for the syntax.
+ */
 
 $local_flags = array();
 
