@@ -27,22 +27,35 @@ prepare_plugin_directory() {
     local target_project="$1"
     local plugin_path="$target_project/$PLUGINS_ROOT/$PLUGIN_NAME"
 
-    if [ -d "$plugin_path" ]; then
-        rm -rf "$plugin_path"
-    fi
     mkdir -p "$plugin_path"
 }
 
 copy_config_file() {
     local source_dir="$1"
-    local plugin_path="$2"
+    local plugin_dir="$2"
     local base_name="$3"
-    local target_name="${4:-$base_name}"
+    local local_name="${base_name%.php}.local.php"
 
-    if [ -f "$source_dir/${base_name%.php}.local.php" ]; then
-      cp "$source_dir/${base_name%.php}.local.php" "$plugin_path/$target_name"
-    elif [ -f "$source_dir/$base_name" ]; then
-      cp "$source_dir/$base_name" "$plugin_path/$target_name"
+    replace_file "$source_dir" "$plugin_dir" "$base_name"
+
+    if [ ! -e "$plugin_dir/$local_name" ]; then
+      cp "$source_dir/$local_name" "$plugin_dir/$local_name"
+    fi
+}
+
+replace_file() {
+    local source_dir="$1"
+    local plugin_dir="$2"
+    local base_name="$3"
+    local source_path="$source_dir/$base_name"
+    local target_path="$plugin_dir/$base_name"
+
+    if [ -f "$source_path" ]; then
+        if [ -f "$target_path" ]; then
+            rm "$target_path"
+        fi
+
+        cp "$source_path" "$target_path"
     fi
 }
 
@@ -51,10 +64,12 @@ copy_plugin_files() {
     local target_project="$2"
     local plugin_path="$target_project/$PLUGINS_ROOT/$PLUGIN_NAME"
 
-    cp "$source_dir/plugin.php" "$plugin_path/plugin.php"
+    echo "*.local.php" > "$plugin_path/.gitignore"
+    replace_file "$source_dir" "$plugin_path" "plugin.php"
 
     copy_config_file "$source_dir" "$plugin_path" "flags.php"
     copy_config_file "$source_dir" "$plugin_path" "actions.php"
+    copy_config_file "$source_dir" "$plugin_path" "snippets.php"
 }
 
 main() {
