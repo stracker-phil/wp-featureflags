@@ -12,21 +12,33 @@
 namespace Syde\WpFeatureFlags;
 
 class ConfigLoader {
+	private string $id;
 	private array $fileNames;
+	private ?array $data = null;
 
-	public function __construct( array $fileNames ) {
+	public function __construct( string $id, array $fileNames ) {
+		$this->id        = $id;
 		$this->fileNames = $fileNames;
 	}
 
-	public function load() : array {
+	public function load(): array {
+		if ( is_array( $this->data ) ) {
+			return $this->data;
+
+		}
+		$this->data = [];
+
 		foreach ( $this->fileNames as $fileName ) {
 			$path = __DIR__ . '/' . $fileName;
 			if ( file_exists( $path ) ) {
-				return (array) require $path;
+				$this->data = (array) require $path;
+				break;
 			}
 		}
 
-		return [];
+		$this->data = apply_filters( "wp_feature_flags/load_config/{$this->id}", $this->data );
+
+		return $this->data;
 	}
 }
 
@@ -34,7 +46,7 @@ abstract class AdminBarMenu {
 	protected string $menuId;
 	protected string $menuTitle;
 
-	protected function addTopLevelMenu( $adminBar ) : bool {
+	protected function addTopLevelMenu( $adminBar ): bool {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
@@ -49,12 +61,12 @@ abstract class AdminBarMenu {
 		return true;
 	}
 
-	protected function isGroupHeading( array $item ) : bool {
+	protected function isGroupHeading( array $item ): bool {
 		return ! empty( $item['label'] )
 			&& count( $item ) === 1;
 	}
 
-	protected function addGroupHeading( $adminBar, string $id, array $item ) : void {
+	protected function addGroupHeading( $adminBar, string $id, array $item ): void {
 		$adminBar->add_node( [
 			'parent' => $this->menuId,
 			'id'     => $this->menuId . '_heading_' . sanitize_key( $id ),
@@ -64,7 +76,7 @@ abstract class AdminBarMenu {
 		] );
 	}
 
-	abstract public function addAdminBarItems( $adminBar ) : void;
+	abstract public function addAdminBarItems( $adminBar ): void;
 }
 
 class FeatureFlags extends AdminBarMenu {
@@ -73,8 +85,8 @@ class FeatureFlags extends AdminBarMenu {
 	private array $featureFlags = [];
 
 	public function __construct( array $featureFlags ) {
-		$this->menuId    = 'wp-feature-flags';
-		$this->menuTitle = 'Feature Flags';
+		$this->menuId       = 'wp-feature-flags';
+		$this->menuTitle    = 'Feature Flags';
 		$this->featureFlags = $this->sanitizeFeatureFlags( $featureFlags );
 
 		if ( ! $this->featureFlags ) {
@@ -86,7 +98,7 @@ class FeatureFlags extends AdminBarMenu {
 		add_action( 'plugins_loaded', [ $this, 'addFeatureFilters' ] );
 	}
 
-	protected function sanitizeFeatureFlags( array $featureFlags ) : array {
+	protected function sanitizeFeatureFlags( array $featureFlags ): array {
 		$validFlags = [];
 
 		foreach ( $featureFlags as $id => $flag ) {
@@ -117,7 +129,7 @@ class FeatureFlags extends AdminBarMenu {
 		return $validFlags;
 	}
 
-	public function addAdminBarItems( $adminBar ) : void {
+	public function addAdminBarItems( $adminBar ): void {
 		if ( ! $this->addTopLevelMenu( $adminBar ) ) {
 			return;
 		}
@@ -342,12 +354,15 @@ class FeatureFlags extends AdminBarMenu {
 		<?php
 	}
 
-	public function handleToggle() : void {
+	public function handleToggle(): void {
+		$valid_states = [ 'default', 'on', 'off' ];
+
 		if ( ! isset( $_REQUEST['action'] ) || $_REQUEST['action'] !== 'wp_toggle_feature_flag' ) {
 			return;
 		}
 
-		if ( ! isset( $_REQUEST['id'], $_REQUEST['state'], $_REQUEST['nonce'] )
+		if (
+			! isset( $_REQUEST['id'], $_REQUEST['state'], $_REQUEST['nonce'] )
 			|| ! current_user_can( 'manage_options' )
 			|| ! wp_verify_nonce( $_REQUEST['nonce'], 'wp_toggle_feature_flag' )
 		) {
@@ -359,12 +374,10 @@ class FeatureFlags extends AdminBarMenu {
 		$id    = sanitize_text_field( $_REQUEST['id'] );
 		$state = sanitize_text_field( $_REQUEST['state'] );
 
-		if ( ! array_key_exists( $id, $this->featureFlags )
-			|| ! in_array( $state, [
-				'default',
-				'on',
-				'off',
-			] ) ) {
+		if (
+			! array_key_exists( $id, $this->featureFlags )
+			|| ! in_array( $state, $valid_states, true )
+		) {
 			wp_send_json_error( 'Invalid feature flag or state' );
 
 			return;
@@ -374,7 +387,7 @@ class FeatureFlags extends AdminBarMenu {
 		wp_send_json_success( [ 'id' => $id, 'state' => $state ] );
 	}
 
-	public function addFeatureFilters() : void {
+	public function addFeatureFilters(): void {
 		foreach ( $this->featureFlags as $id => $flag ) {
 			$state = $this->getFeatureState( $id );
 
@@ -386,13 +399,13 @@ class FeatureFlags extends AdminBarMenu {
 		}
 	}
 
-	private function getFeatureState( string $id ) : string {
+	private function getFeatureState( string $id ): string {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		return $states[ $id ] ?? 'default';
 	}
 
-	private function setFeatureState( string $id, string $state ) : void {
+	private function setFeatureState( string $id, string $state ): void {
 		$states = get_option( self::OPTION_NAME, [] );
 
 		if ( 'default' === $state ) {
@@ -402,13 +415,16 @@ class FeatureFlags extends AdminBarMenu {
 		}
 
 		update_option( self::OPTION_NAME, $states );
+
+		do_action( "wp_feature_flags/updated/$id", $state );
+		do_action( 'wp_feature_flags/updated', $id, $state );
 	}
 }
 
 class FeatureActions extends AdminBarMenu {
 	private const NONCE_ACTION = 'wp_feature_action';
 
-	private array $actions = [];
+	private array $actions;
 
 	public function __construct( array $actions ) {
 		$this->menuId    = 'wp-feature-actions';
@@ -422,7 +438,7 @@ class FeatureActions extends AdminBarMenu {
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 101 );
 	}
 
-	private function sanitizeActions( array $actions ) : array {
+	private function sanitizeActions( array $actions ): array {
 		$valid = [];
 
 		foreach ( $actions as $id => $action ) {
@@ -469,7 +485,7 @@ class FeatureActions extends AdminBarMenu {
 		return $valid;
 	}
 
-	public function addAdminBarItems( $adminBar ) : void {
+	public function addAdminBarItems( $adminBar ): void {
 		if ( ! $this->addTopLevelMenu( $adminBar ) ) {
 			return;
 		}
@@ -584,18 +600,19 @@ class FeatureActions extends AdminBarMenu {
 					item.classList.add('error');
 				};
 
-				xhr.send(
-					'action=wp_run_feature_action'
-					+ '&id=' + encodeURIComponent(id)
-					+ '&nonce=<?php echo wp_create_nonce( self::NONCE_ACTION ); ?>'
-				);
+				xhr.send([
+					'action=wp_run_feature_action',
+					'id=' + encodeURIComponent(id),
+					'nonce=<?php echo wp_create_nonce( self::NONCE_ACTION ); ?>',
+				].join('&'));
 			}
 		</script>
 		<?php
 	}
 
-	public function handleAction() : void {
-		if ( ! isset( $_REQUEST['id'], $_REQUEST['nonce'] )
+	public function handleAction(): void {
+		if (
+			! isset( $_REQUEST['id'], $_REQUEST['nonce'] )
 			|| ! current_user_can( 'manage_options' )
 			|| ! wp_verify_nonce( $_REQUEST['nonce'], self::NONCE_ACTION )
 		) {
@@ -614,13 +631,16 @@ class FeatureActions extends AdminBarMenu {
 
 		$action = $this->actions[ $id ];
 
+		do_action( "wp_feature_flags/before_action/$id" );
+		do_action( 'wp_feature_flags/before_action', $id );
+
 		foreach ( $action['changes'] as $change ) {
 			$type = $change[0];
 
 			if ( 'set_option' === $type ) {
 				update_option( $change[1], $change[2] );
 			} elseif ( 'set_option_key' === $type ) {
-				$option          = get_option( $change[1], [] );
+				$option               = get_option( $change[1], [] );
 				$option[ $change[2] ] = $change[3];
 				update_option( $change[1], $option );
 			} elseif ( 'delete_option' === $type ) {
@@ -630,11 +650,14 @@ class FeatureActions extends AdminBarMenu {
 			}
 		}
 
+		do_action( "wp_feature_flags/action/$id" );
+		do_action( 'wp_feature_flags/action', $id );
+
 		wp_send_json_success( [ 'id' => $id ] );
 	}
 }
 
-function init() : void {
+add_action( 'plugins_loaded', static function (): void {
 	static $initialized = false;
 
 	if ( $initialized ) {
@@ -642,14 +665,12 @@ function init() : void {
 	}
 	$initialized = true;
 
-	$flagsLoader   = new ConfigLoader( [ 'flags.local.php', 'config.local.php', 'flags.php', 'config.php' ] );
-	$actionsLoader = new ConfigLoader( [ 'actions.local.php', 'actions.php' ] );
+	$flagsLoader   = new ConfigLoader('flags', [ 'flags.local.php', 'config.local.php', 'flags.php', 'config.php' ] );
+	$actionsLoader = new ConfigLoader('actions', [ 'actions.local.php', 'actions.php' ] );
 
 	$featureFlags = new FeatureFlags( $flagsLoader->load() );
 	add_action( 'wp_ajax_wp_toggle_feature_flag', [ $featureFlags, 'handleToggle' ] );
 
 	$featureActions = new FeatureActions( $actionsLoader->load() );
 	add_action( 'wp_ajax_wp_run_feature_action', [ $featureActions, 'handleAction' ] );
-}
-
-init();
+} );
