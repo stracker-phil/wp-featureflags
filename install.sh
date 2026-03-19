@@ -64,7 +64,6 @@ copy_plugin_files() {
     local target_project="$2"
     local plugin_path="$target_project/$PLUGINS_ROOT/$PLUGIN_NAME"
 
-    echo "*.local.php" > "$plugin_path/.gitignore"
     replace_file "$source_dir" "$plugin_path" "plugin.php"
 
     copy_config_file "$source_dir" "$plugin_path" "flags.php"

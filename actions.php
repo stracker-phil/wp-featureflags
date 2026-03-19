@@ -1,6 +1,6 @@
 <?php
 /**
- * Feature Actions to display in the admin bar.
+ * Default feature actions, displayed in the admin bar.
  *
  * Each action has a 'label' and a list of 'changes' to apply.
  * Supported change types:
@@ -9,7 +9,7 @@
  *   ['delete_option', 'option_name']                 - Deletes an option
  *   ['do_action', 'action_name']                     - Fires a WordPress action hook
  *
- * This file can be copied and named "actions.local.php" to make local adjustments.
+ * This configuration can be modified via the "actions.local.php" file.
  */
 
 return [
