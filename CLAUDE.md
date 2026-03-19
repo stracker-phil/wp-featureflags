@@ -27,7 +27,7 @@ adr/                # Architecture Decision Records
 
 - **Add a flag:** Add an entry to `flags.php` with `label`, `filter`, and optional `default`/`display` keys.
 - **Add an action:** Add an entry to `actions.php` with `label` and a `changes` array of operations (`set_option`, `set_option_key`, `delete_option`, `do_action`).
-- **Group headings:** An entry with only a `label` key renders as a non-clickable separator.
+- **Group headings:** A plain string entry or an entry with only a `label` key renders as a non-clickable separator. A dash-only string (e.g. `'-'` or `'---'`) renders as an `<hr>` divider line.
 - **Local overrides:** `*.local.php` files are loaded instead of the base file (first-file-wins via ConfigLoader). The shipped stubs `require` the base and `array_merge` on top, but a dev can return any array — merge, replace, or selectively `unset()` entries. See [ADR-003](adr/003-local-override-pattern.md).
 
 ## Architecture

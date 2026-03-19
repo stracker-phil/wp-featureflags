@@ -8,7 +8,7 @@ Flags and actions need to be easy to add, remove, and review. A database-backed 
 
 ## Decision
 
-Configuration lives in plain PHP files (`flags.php`, `actions.php`) that return associative arrays. Each entry is a self-contained definition with a label and either a WP filter name (flags) or a list of change operations (actions). Group headings are label-only entries.
+Configuration lives in plain PHP files (`flags.php`, `actions.php`) that return associative arrays. Each entry is a self-contained definition with a label and either a WP filter name (flags) or a list of change operations (actions). Group headings can be a plain string or a label-only array entry. A dash-only string (e.g., `'-'` or `'---'`) renders as an `<hr>` divider instead of a text heading.
 
 ## Consequences
 
