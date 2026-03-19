@@ -66,13 +66,19 @@ abstract class AdminBarMenu {
 			&& count( $item ) === 1;
 	}
 
+	protected function isDivider( array $item ): bool {
+		return preg_match( '/^-+$/', $item['label'] );
+	}
+
 	protected function addGroupHeading( $adminBar, string $id, array $item ): void {
+		$isDivider = $this->isDivider( $item );
+
 		$adminBar->add_node( [
 			'parent' => $this->menuId,
 			'id'     => $this->menuId . '_heading_' . sanitize_key( $id ),
-			'title'  => esc_html( $item['label'] ),
+			'title'  => $isDivider ? '<hr>' : esc_html( $item['label'] ),
 			'href'   => false,
-			'meta'   => [ 'class' => 'wp-feature-group-heading' ],
+			'meta'   => [ 'class' => $isDivider ? 'wp-feature-group-divider' : 'wp-feature-group-heading' ],
 		] );
 	}
 
@@ -102,6 +108,10 @@ class FeatureFlags extends AdminBarMenu {
 		$validFlags = [];
 
 		foreach ( $featureFlags as $id => $flag ) {
+			if ( is_string( $flag ) ) {
+				$flag = [ 'label' => $flag ];
+			}
+
 			if ( empty( $flag ) || ! is_array( $flag ) || empty( $flag['label'] ) ) {
 				continue;
 			}
@@ -220,6 +230,19 @@ class FeatureFlags extends AdminBarMenu {
 				font-size: 11px !important;
 				pointer-events: none;
 				cursor: default;
+			}
+
+			#wp-admin-bar-wp-feature-flags .wp-feature-group-divider > .ab-item {
+				pointer-events: none;
+				cursor: default;
+				height: 0 !important;
+				padding: 0 !important;
+			}
+
+			#wp-admin-bar-wp-feature-flags .wp-feature-group-divider hr {
+				margin: 4px 8px;
+				border: none;
+				border-top: 1px solid rgba(255, 255, 255, 0.2);
 			}
 
 			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item > .ab-item {
@@ -442,6 +465,10 @@ class FeatureActions extends AdminBarMenu {
 		$valid = [];
 
 		foreach ( $actions as $id => $action ) {
+			if ( is_string( $action ) ) {
+				$action = [ 'label' => $action ];
+			}
+
 			if ( empty( $action ) || ! is_array( $action ) || empty( $action['label'] ) ) {
 				continue;
 			}
@@ -525,6 +552,19 @@ class FeatureActions extends AdminBarMenu {
 				font-size: 11px !important;
 				pointer-events: none;
 				cursor: default;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-group-divider > .ab-item {
+				pointer-events: none;
+				cursor: default;
+				height: 0 !important;
+				padding: 0 !important;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-group-divider hr {
+				margin: 4px 8px;
+				border: none;
+				border-top: 1px solid rgba(255, 255, 255, 0.2);
 			}
 
 			#wp-admin-bar-wp-feature-actions .wp-feature-action-item > .ab-item {

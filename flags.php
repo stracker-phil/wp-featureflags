@@ -7,9 +7,7 @@
 
 // WooCommerce PayPal Payments: 2.9.4
 $wc_pp_feature_flags = [
-	'wcpp/header-flags'                    => [
-		'label' => 'PayPal Payments - Feature Flags',
-	],
+	'PayPal Payments - Feature Flags',
 	// Feature flags.
 	'wcpp/applepay_enabled'                => [
 		'label'   => 'Apple Pay',
@@ -84,9 +82,7 @@ $wc_pp_feature_flags = [
 	],
 
 	// Plugin settings.
-	'wcpp/header-settings'                 => [
-		'label' => 'PayPal Payments - Setting Override',
-	],
+	'PayPal Payments - Setting Override',
 	'wcpp/logging'                         => [
 		'label'   => 'Logging',
 		'filter'  => 'woocommerce_paypal_payments_is_logging_enabled',

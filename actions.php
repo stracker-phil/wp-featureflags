@@ -13,9 +13,7 @@
  */
 
 return [
-	'wcpp/header'              => [
-		'label' => 'PayPal Payments',
-	],
+	'PayPal Payments',
 	'wcpp/run_migration'       => [
 		'label'   => 'Run Update Actions',
 		'changes' => [
