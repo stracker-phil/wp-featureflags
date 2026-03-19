@@ -1,15 +1,15 @@
 # WP Feature-Flag Manager
 
-WordPress admin-bar plugin for toggling feature flags and running one-click database actions during development. Built for WooCommerce PayPal Payments but works with any plugin that uses WP filters.
+WordPress admin-bar plugin for toggling feature flags and running one-click database actions during development. Works with any plugin that uses WP filters.
 
 ## Quick Start
 
 ```sh
 # Install into a DDEV WordPress project
-bash install.sh ~/Coding/wc-pp-plugin
+bash install.sh ~/Coding/my-wp-project
 ```
 
-No build step, no Composer, no dependencies. The install script copies files into `.ddev/wordpress/wp-content/plugins/wc-pp-featureflags/`.
+No build step, no Composer, no dependencies. The install script copies files into `.ddev/wordpress/wp-content/plugins/wp-featureflags/`.
 
 ## Project Structure
 
@@ -42,6 +42,6 @@ adr/                # Architecture Decision Records
 ## Conventions
 
 - PHP namespace: `WpFeatureFlags`
-- Config keys use slash-separated IDs: `wcpp/feature_name`
-- Filters follow WooCommerce feature-flag naming: `woocommerce.feature-flags.<plugin>.<flag>`
+- Config keys use slash-separated IDs: `myplugin/feature_name`
+- Filters target the WP filter used by the relevant plugin (e.g. `woocommerce.feature-flags.<plugin>.<flag>`)
 - No tests, linter, or CI — this is a lightweight dev utility

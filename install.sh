@@ -2,7 +2,7 @@
 
 set -e
 
-PLUGIN_NAME="wc-pp-featureflags"
+PLUGIN_NAME="wp-featureflags"
 PLUGINS_ROOT=".ddev/wordpress/wp-content/plugins"
 
 show_usage() {

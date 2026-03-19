@@ -8,7 +8,7 @@ The plugin must be installed into a DDEV-based WordPress project's `wp-content/p
 
 ## Decision
 
-A bash `install.sh` script copies plugin files into the target project at `.ddev/wordpress/wp-content/plugins/wc-pp-featureflags/`. Core files (`plugin.php`, config files) are always overwritten. Local override files are only copied if they don't already exist, preserving personal customizations.
+A bash `install.sh` script copies plugin files into the target project at `.ddev/wordpress/wp-content/plugins/wp-featureflags/`. Core files (`plugin.php`, config files) are always overwritten. Local override files are only copied if they don't already exist, preserving personal customizations.
 
 ## Consequences
 

@@ -20,7 +20,7 @@ Run the `install.sh` script and define the target project as argument to install
 this plugin into the relevant DDEV environment:
 
 ```sh
-bash install.sh ~/Coding/wc-pp-plugin
+bash install.sh ~/Coding/my-wp-project
 ```
 
 
@@ -73,12 +73,10 @@ Both config files support visual group headings. An item with only a `label` key
 
 ```php
 return [
-    'ppcp' => [
-        'label' => 'PayPal Payments',
-    ],
-    'wcpp/applepay_enabled' => [
-        'label'  => 'Apple Pay',
-        'filter' => '...',
+    'My Plugin',
+    'myplugin/feature_x' => [
+        'label'  => 'Feature X',
+        'filter' => 'my_plugin_feature_x_enabled',
     ],
 ];
 ```
