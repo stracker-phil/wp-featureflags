@@ -9,7 +9,7 @@
  * @formatter:on
  */
 
-namespace Syde\WpFeatureFlags;
+namespace WpFeatureFlags;
 
 class ConfigLoader {
 	private string $id;
