@@ -11,6 +11,8 @@
 
 namespace WpFeatureFlags;
 
+use Exception;
+
 class ConfigLoader {
 	private string $id;
 	private array $fileNames;
@@ -686,8 +688,14 @@ class FeatureActions extends AdminBarMenu {
 			} elseif ( 'delete_option' === $type ) {
 				delete_option( $change[1] );
 			} elseif ( 'do_action' === $type ) {
-				do_action( ...array_slice( $change, 1 ) );
+				try {
+					do_action( ...array_slice( $change, 1 ) );
+				} catch ( Exception $e ) {
+					error_log( "Action failed: $change[0]", $e->getMessage() );
+				}
 			}
+
+			wp_cache_delete( 'alloptions', 'options' );
 		}
 
 		do_action( "wp_feature_flags/action/$id" );
