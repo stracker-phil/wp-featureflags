@@ -13,14 +13,19 @@ namespace WpFeatureFlags;
 
 use Exception;
 
+defined( 'WP_FEATUREFLAGS_DIR' ) || define( 'WP_FEATUREFLAGS_DIR', __DIR__ );
+defined( 'WP_FEATUREFLAGS_CONFIG_DIR' ) || define( 'WP_FEATUREFLAGS_CONFIG_DIR', WP_CONTENT_DIR . '/' . basename( __DIR__ ) );
+
 class ConfigLoader {
 	private string $id;
-	private array $fileNames;
+	private string $fileName;
+	private array $searchPaths;
 	private ?array $data = null;
 
-	public function __construct( string $id, array $fileNames ) {
-		$this->id        = $id;
-		$this->fileNames = $fileNames;
+	public function __construct( string $id, string $fileName, array $searchPaths = [] ) {
+		$this->id          = $id;
+		$this->fileName    = $fileName;
+		$this->searchPaths = $searchPaths ?: [ __DIR__ ];
 	}
 
 	public function load(): array {
@@ -30,8 +35,8 @@ class ConfigLoader {
 		}
 		$this->data = [];
 
-		foreach ( $this->fileNames as $fileName ) {
-			$path = __DIR__ . '/' . $fileName;
+		foreach ( $this->searchPaths as $dir ) {
+			$path = $dir . '/' . $this->fileName;
 			if ( file_exists( $path ) ) {
 				$this->data = (array) require $path;
 				break;
@@ -713,14 +718,23 @@ add_action( 'plugins_loaded', static function (): void {
 	}
 	$initialized = true;
 
-	$flagsLoader   =
-		new ConfigLoader( 'flags', [
-			'flags.local.php',
-			'config.local.php',
-			'flags.php',
-			'config.php',
-		] );
-	$actionsLoader = new ConfigLoader( 'actions', [ 'actions.local.php', 'actions.php' ] );
+	// Bootstrap external config dir with sample files on first load.
+	if ( ! is_dir( WP_FEATUREFLAGS_CONFIG_DIR ) ) {
+		wp_mkdir_p( WP_FEATUREFLAGS_CONFIG_DIR );
+	}
+	foreach ( [ 'flags', 'actions', 'snippets' ] as $name ) {
+		$target = WP_FEATUREFLAGS_CONFIG_DIR . '/' . $name . '.php';
+		$source = WP_FEATUREFLAGS_DIR . '/' . $name . '.sample.php';
+
+		if ( ! file_exists( $target ) && file_exists( $source ) ) {
+			copy( $source, $target );
+		}
+	}
+
+	$searchPaths = [ WP_FEATUREFLAGS_CONFIG_DIR, WP_FEATUREFLAGS_DIR ];
+
+	$flagsLoader   = new ConfigLoader( 'flags', 'flags.php', $searchPaths );
+	$actionsLoader = new ConfigLoader( 'actions', 'actions.php', $searchPaths );
 
 	$featureFlags = new FeatureFlags( $flagsLoader->load() );
 	add_action( 'wp_ajax_wp_toggle_feature_flag', [ $featureFlags, 'handleToggle' ] );
@@ -728,7 +742,7 @@ add_action( 'plugins_loaded', static function (): void {
 	$featureActions = new FeatureActions( $actionsLoader->load() );
 	add_action( 'wp_ajax_wp_run_feature_action', [ $featureActions, 'handleAction' ] );
 
-	$snippet_file = __DIR__ . '/snippets.local.php';
+	$snippet_file = WP_FEATUREFLAGS_CONFIG_DIR . '/snippets.php';
 	if ( file_exists( $snippet_file ) ) {
 		require_once $snippet_file;
 	}

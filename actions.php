@@ -9,7 +9,7 @@
  *   ['delete_option', 'option_name']                 - Deletes an option
  *   ['do_action', 'action_name']                     - Fires a WordPress action hook
  *
- * This configuration can be modified via the "actions.local.php" file.
+ * Override locally by editing "actions.php" in wp-content/wp-featureflags/.
  */
 
 return [

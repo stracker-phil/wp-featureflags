@@ -2,7 +2,7 @@
 /**
  * Default feature flags, displayed in the admin bar.
  *
- * This configuration can be modified via the "flags.local.php" file.
+ * Override locally by editing "flags.php" in wp-content/wp-featureflags/.
  */
 
 // WooCommerce PayPal Payments: 2.9.4
