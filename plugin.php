@@ -713,8 +713,14 @@ add_action( 'plugins_loaded', static function (): void {
 	}
 	$initialized = true;
 
-	$flagsLoader   = new ConfigLoader('flags', [ 'flags.local.php', 'config.local.php', 'flags.php', 'config.php' ] );
-	$actionsLoader = new ConfigLoader('actions', [ 'actions.local.php', 'actions.php' ] );
+	$flagsLoader   =
+		new ConfigLoader( 'flags', [
+			'flags.local.php',
+			'config.local.php',
+			'flags.php',
+			'config.php',
+		] );
+	$actionsLoader = new ConfigLoader( 'actions', [ 'actions.local.php', 'actions.php' ] );
 
 	$featureFlags = new FeatureFlags( $flagsLoader->load() );
 	add_action( 'wp_ajax_wp_toggle_feature_flag', [ $featureFlags, 'handleToggle' ] );
