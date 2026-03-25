@@ -24,6 +24,35 @@ bash install.sh ~/Coding/my-wp-project
 ```
 
 
+## Project Structure
+
+```
+plugin.php                      # All plugin code — single file, namespace WpFeatureFlags
+flags.php                       # Base feature flag definitions (PHP array)
+actions.php                     # Base action definitions (PHP array)
+*.sample.php                    # Templates copied to config dir on first load
+install.sh                      # Deploys plugin to a target DDEV project
+.github/workflows/release.yml  # Creates a GitHub release zip on semver tag push
+adr/                            # Architecture Decision Records
+```
+
+Local config files live **outside** the plugin directory in `wp-content/wp-featureflags/` so they persist across plugin updates. On first load, `*.sample.php` templates are copied there as `*.php`:
+
+```
+wp-content/
+  wp-featureflags/              # Persistent config dir — survives plugin updates
+    flags.php                   # Local flag overrides (from flags.sample.php)
+    actions.php                 # Local action overrides (from actions.sample.php)
+    snippets.php                # Local PHP snippets (from snippets.sample.php)
+  plugins/
+    wp-featureflags/            # Plugin dir — replaced on update
+      plugin.php
+      flags.php                 # Base flag definitions
+      actions.php               # Base action definitions
+      *.sample.php              # Templates for the config dir
+```
+
+
 ## Configuration
 
 ### Feature Flags
@@ -40,8 +69,6 @@ return [
     ],
 ];
 ```
-
-The legacy filename `config.php` is still supported as a fallback.
 
 ### Feature Actions
 
@@ -67,9 +94,9 @@ Supported change types:
 - `['delete_option', 'key']` - Deletes a WP option
 - `['do_action', 'hook', ...$args]` - Fires a WordPress action hook with optional arguments
 
-### Group headings
+### Group headings and dividers
 
-Both config files support visual group headings. An item with only a `label` key (no `filter`/`changes`) renders as a non-clickable separator in the dropdown menu:
+Both config files support visual group headings. A plain string entry or an entry with only a `label` key (no `filter`/`changes`) renders as a non-clickable separator in the dropdown menu. A dash-only string (e.g. `'-'` or `'---'`) renders as an `<hr>` divider line:
 
 ```php
 return [
@@ -78,9 +105,25 @@ return [
         'label'  => 'Feature X',
         'filter' => 'my_plugin_feature_x_enabled',
     ],
+    '---',
+    'Another Plugin',
+    // ...
 ];
 ```
 
 ### Local overrides
 
-Both config files can be copied to a `.local.php` variant (`flags.local.php`, `actions.local.php`) for local adjustments. The `.local.php` files are ignored by git and take precedence over the default files.
+Local config files live in `wp-content/wp-featureflags/`, outside the plugin directory, so they persist across plugin updates. On first load, the `*.sample.php` templates are copied there as starting points.
+
+The shipped samples `require` the base definitions via `WP_FEATUREFLAGS_DIR` and `array_merge` on top, but you can return any array — merge, replace, or selectively `unset()` entries:
+
+```php
+// wp-content/wp-featureflags/flags.php (generated from flags.sample.php)
+$my_flags = array();
+
+return array_merge( (array) require WP_FEATUREFLAGS_DIR . '/flags.php', $my_flags );
+```
+
+### Snippets
+
+The `snippets.php` file in the config dir (`wp-content/wp-featureflags/snippets.php`) is loaded on every request and can contain arbitrary PHP code — custom action handlers, debug helpers, etc. Like the other config files, it is seeded from `snippets.sample.php` on first load.
