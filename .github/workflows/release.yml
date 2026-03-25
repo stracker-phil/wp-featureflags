@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build plugin zip
-        run: zip wp-featureflags.zip plugin.php actions.php flags.php snippets.local.php
+        run: zip wp-featureflags.zip plugin.php actions.php flags.php actions.sample.php flags.sample.php snippets.sample.php
 
       - name: Create release
         uses: softprops/action-gh-release@v2
