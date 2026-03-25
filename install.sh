@@ -3,7 +3,7 @@
 set -e
 
 PLUGIN_NAME="wp-featureflags"
-PLUGINS_ROOT=".ddev/wordpress/wp-content/plugins"
+PLUGINS_ROOT="wp-content/plugins"
 
 show_usage() {
     echo "Usage: $0 <absolute_path_to_target_project>"
@@ -15,6 +15,11 @@ validate_target_project() {
     if [ ! -d "$target_project" ]; then
         echo "Error: The provided path does not exist."
         exit 1
+    fi
+
+    if [ ! -d "$target_project/$PLUGINS_ROOT" ]; then
+        # Try with DDEV prefix.
+        PLUGINS_ROOT=".ddev/wordpress/wp-content/plugins"
     fi
 
     if [ ! -d "$target_project/$PLUGINS_ROOT" ]; then
