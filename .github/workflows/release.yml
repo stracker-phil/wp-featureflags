@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        run: zip wp-featureflags.zip plugin.php actions.php flags.php snippets.local.php
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wp-featureflags.zip
+          generate_release_notes: true
