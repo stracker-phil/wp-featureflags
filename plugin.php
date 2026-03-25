@@ -726,4 +726,19 @@ add_action( 'plugins_loaded', static function (): void {
 	if ( file_exists( $snippet_file ) ) {
 		require_once $snippet_file;
 	}
+
+	$clean_up = static function () {
+		global $wpdb;
+
+		$wpdb->query(
+			"DELETE FROM {$wpdb->options}
+			WHERE option_name LIKE '\_transient\_%'
+			;"
+		);
+
+		wp_cache_flush();
+	};
+
+	add_action( 'wp_feature_flags/updated', $clean_up );
+	add_action( 'wp_feature_flags/action', $clean_up );
 } );
