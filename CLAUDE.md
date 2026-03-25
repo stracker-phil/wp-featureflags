@@ -14,13 +14,14 @@ No build step, no Composer, no dependencies. The install script copies files int
 ## Project Structure
 
 ```
-plugin.php          # All plugin code — single file, namespace WpFeatureFlags
-flags.php           # Shared feature flag definitions (PHP array)
-actions.php         # Shared action definitions (PHP array)
-*.local.php         # Personal overrides — git-ignored, not overwritten on install
-snippets.local.php  # Local arbitrary PHP loaded at runtime
-install.sh          # Deploys plugin to a target DDEV project
-adr/                # Architecture Decision Records
+plugin.php                      # All plugin code — single file, namespace WpFeatureFlags
+flags.php                       # Shared feature flag definitions (PHP array)
+actions.php                     # Shared action definitions (PHP array)
+*.local.php                     # Personal overrides — git-ignored, not overwritten on install
+snippets.local.php              # Local arbitrary PHP loaded at runtime
+install.sh                      # Deploys plugin to a target DDEV project
+.github/workflows/release.yml  # Creates a GitHub release zip on semver tag push
+adr/                            # Architecture Decision Records
 ```
 
 ## Configuration
@@ -44,4 +45,5 @@ adr/                # Architecture Decision Records
 - PHP namespace: `WpFeatureFlags`
 - Config keys use slash-separated IDs: `myplugin/feature_name`
 - Filters target the WP filter used by the relevant plugin (e.g. `woocommerce.feature-flags.<plugin>.<flag>`)
-- No tests, linter, or CI — this is a lightweight dev utility
+- No tests or linter — this is a lightweight dev utility
+- Releases are cut by pushing a semver tag (`git tag v1.0.0 && git push origin v1.0.0`); GitHub Actions builds the zip (see [ADR-008](adr/008-github-release-workflow.md))
