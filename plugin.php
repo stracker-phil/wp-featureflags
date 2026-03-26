@@ -5,7 +5,7 @@
  * Plugin URI:  https://github.com/stracker-phil/wp-featureflags
  * Description: Development utility that allows toggling feature flags and running quick actions via the WP admin bar
  * Author:      Philipp Stracker
- * Version:     1.2.0
+ * Version:     1.2.1
  * @formatter:on
  */
 
