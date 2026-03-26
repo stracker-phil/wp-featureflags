@@ -18,6 +18,7 @@ plugin.php                      # All plugin code — single file, namespace WpF
 flags.php                       # Shared feature flag definitions (PHP array)
 actions.php                     # Shared action definitions (PHP array)
 *.sample.php                    # Templates copied to config dir on first load
+changelog.txt                   # Version history with categorised entries (New/Improve/Fix/Change/Chore)
 install.sh                      # Deploys plugin to a target DDEV project
 .github/workflows/release.yml  # Creates a GitHub release zip on semver tag push
 adr/                            # Architecture Decision Records
@@ -52,6 +53,7 @@ wp-content/
 - Config is declarative PHP arrays supporting callables for defaults (see [ADR-002](adr/002-declarative-php-config.md))
 - Local config in `wp-content/wp-featureflags/` for per-developer customization that survives plugin updates (see [ADR-003](adr/003-local-override-pattern.md))
 - Flags work by injecting WP filters at priority 99999 on `plugins_loaded` (see [ADR-006](adr/006-filter-based-flags.md))
+- Plugin forces itself to load first: activation hook reorders `active_plugins` / `active_sitewide_plugins`, bootstrap runs at `plugins_loaded` priority -100 (see [ADR-009](adr/009-plugin-loading-order.md))
 - State stored in `wp_feature_flags` WP option; toggled via AJAX with nonce auth (see [ADR-007](adr/007-ajax-nonce-security.md))
 - Admin bar menus visible only to users with `manage_options` capability
 

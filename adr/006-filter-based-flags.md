@@ -14,4 +14,4 @@ Each flag maps to a WP filter name. On `plugins_loaded`, the plugin adds a filte
 
 - Works with any plugin that uses `apply_filters` for feature gating.
 - Priority 99999 ensures this plugin's override wins over most other filters.
-- The `plugins_loaded` hook timing means flags are active before most plugin initialization.
+- The `plugins_loaded` hook timing means flags are active before most plugin initialization. See [ADR-009](009-plugin-loading-order.md) for how loading order is guaranteed.
