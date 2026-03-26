@@ -16,6 +16,39 @@ use Exception;
 defined( 'WP_FEATUREFLAGS_DIR' ) || define( 'WP_FEATUREFLAGS_DIR', __DIR__ );
 defined( 'WP_FEATUREFLAGS_CONFIG_DIR' ) || define( 'WP_FEATUREFLAGS_CONFIG_DIR', WP_CONTENT_DIR . '/' . basename( __DIR__ ) );
 
+// Ensure this plugin loads before all others so feature-flag filters are in place
+// before any plugin evaluates them during plugins_loaded.
+register_activation_hook( __FILE__, static function ( bool $network_wide = false ): void {
+	$plugin = plugin_basename( __FILE__ );
+
+	if ( $network_wide && is_multisite() ) {
+		$plugins = get_site_option( 'active_sitewide_plugins', [] );
+
+		if ( ! isset( $plugins[ $plugin ] ) ) {
+			return;
+		}
+
+		// active_sitewide_plugins is keyed by basename; loading order follows key order.
+		unset( $plugins[ $plugin ] );
+		$plugins = [ $plugin => time() ] + $plugins;
+		update_site_option( 'active_sitewide_plugins', $plugins );
+
+		return;
+	}
+
+	$plugins = get_option( 'active_plugins', [] );
+	$key     = array_search( $plugin, $plugins, true );
+
+	// Already first plugin, or loaded as mu-plugin. No change needed.
+	if ( false === $key || 0 === $key ) {
+		return;
+	}
+
+	unset( $plugins[ $key ] );
+	array_unshift( $plugins, $plugin );
+	update_option( 'active_plugins', array_values( $plugins ) );
+} );
+
 class ConfigLoader {
 	private string $id;
 	private string $fileName;
@@ -761,4 +794,4 @@ add_action( 'plugins_loaded', static function (): void {
 
 	add_action( 'wp_feature_flags/updated', $clean_up );
 	add_action( 'wp_feature_flags/action', $clean_up );
-} );
+}, - 100 );
