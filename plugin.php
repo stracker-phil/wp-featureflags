@@ -139,9 +139,10 @@ class FeatureFlags extends AdminBarMenu {
 			return;
 		}
 
+		$this->addFeatureFilters();
+
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 100 );
 		add_action( 'init', [ $this, 'handleToggle' ] );
-		add_action( 'plugins_loaded', [ $this, 'addFeatureFilters' ] );
 	}
 
 	protected function sanitizeFeatureFlags( array $featureFlags ): array {
