@@ -1,0 +1,37 @@
+WP Feature-Flag Manager — Changelog
+=====================================
+
+1.2.1
+-----
+- Fix: Feature filters not registered because plugins_loaded action never fired a second time; now called directly during bootstrap
+- Improve: Plugin loads before all others via activation hook reordering and plugins_loaded priority -100
+
+1.2.0
+-----
+- New: Feature Actions menu for one-click database operations (set_option, delete_option, do_action, etc.)
+- New: snippets.php for local PHP code snippets
+- New: Auto-install sample config files (flags.php, actions.php, snippets.php) when the config dir is missing
+- New: Config syntax for group headings (plain string or label-only entry renders as a separator; dash strings render as <hr>)
+- New: Auto-clear caches and transients after running an action
+- Improve: Reload page automatically after performing a Feature Action
+- Change: Rebrand as generic WordPress plugin (no longer WooCommerce-specific)
+- Change: Move local config files to a dedicated wp-content/wp-featureflags/ folder so they survive plugin updates
+- Change: Rename feature-flag config file from config.php to flags.php
+- Change: Rename "Agentic Commerce" flag preset to "Store Sync"
+- Change: Decouple install script from DDEV (works with any WordPress project)
+- Chore: Simplify PHP namespace
+- Chore: GitHub Actions workflow for automatic release zips on semver tags
+- Chore: Add Architecture Decision Records (ADRs)
+
+1.1.0
+-----
+- New: Flag presets for PWC (Payments Without Checkout), PPCP, contacts module, and force-logging
+
+1.0.0
+-----
+- New: Initial release
+- New: Admin bar menu for toggling feature flags (manage_options only)
+- New: State stored in wp_feature_flags option, toggled via AJAX with nonce auth
+- New: Declarative PHP array config with support for callables as defaults
+- New: Local config file overrides
+- New: Flag presets for WC PayPal Payments (Apple Pay, Google Pay, Card Fields, Vaulting, Fastlane, etc.)
