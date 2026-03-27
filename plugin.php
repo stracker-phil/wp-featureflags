@@ -657,6 +657,15 @@ class FeatureActions extends AdminBarMenu {
 				item.classList.remove('done', 'error');
 				item.classList.add('running');
 
+				const pingServer = (onDone) => {
+					const xhrPing = new XMLHttpRequest();
+					xhrPing.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+					xhrPing.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+					xhrPing.onload = onDone;
+					xhrPing.onerror = onDone;
+					xhrPing.send();
+				}
+
 				const xhr = new XMLHttpRequest();
 				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -666,8 +675,10 @@ class FeatureActions extends AdminBarMenu {
 					if (xhr.status === 200) {
 						const response = JSON.parse(xhr.responseText);
 						if (response.success) {
-							item.classList.add('done');
-							window.location.reload();
+							setTimeout(() => pingServer(() => {
+								item.classList.add('done');
+								setTimeout(() => window.location.reload(), 500);
+							}), 500);
 						} else {
 							item.classList.add('error');
 						}
