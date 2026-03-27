@@ -122,6 +122,39 @@ abstract class AdminBarMenu {
 		] );
 	}
 
+	protected function addSharedStyles(): void {
+		static $done = false;
+
+		if ( $done ) {
+			return;
+		}
+		$done = true;
+		?>
+		<style>
+			#wpadminbar .wp-feature-group-heading > .ab-item {
+				opacity: 0.6;
+				text-transform: uppercase;
+				font-size: 11px !important;
+				pointer-events: none;
+				cursor: default;
+			}
+
+			#wpadminbar .wp-feature-group-divider > .ab-item {
+				pointer-events: none;
+				cursor: default;
+				height: 0 !important;
+				padding: 0 !important;
+			}
+
+			#wpadminbar .wp-feature-group-divider hr {
+				margin: 4px 8px;
+				border: none;
+				border-top: 1px solid rgba(255, 255, 255, 0.2);
+			}
+		</style>
+		<?php
+	}
+
 	abstract public function addAdminBarItems( $adminBar ): void;
 }
 
@@ -236,6 +269,7 @@ class FeatureFlags extends AdminBarMenu {
 			}
 		}
 
+		$this->addSharedStyles();
 		$this->addAdminBarStyles();
 		$this->addAdminBarScript();
 	}
@@ -265,27 +299,6 @@ class FeatureFlags extends AdminBarMenu {
 	private function addAdminBarStyles() {
 		?>
 		<style>
-			#wp-admin-bar-wp-feature-flags .wp-feature-group-heading > .ab-item {
-				opacity: 0.6;
-				text-transform: uppercase;
-				font-size: 11px !important;
-				pointer-events: none;
-				cursor: default;
-			}
-
-			#wp-admin-bar-wp-feature-flags .wp-feature-group-divider > .ab-item {
-				pointer-events: none;
-				cursor: default;
-				height: 0 !important;
-				padding: 0 !important;
-			}
-
-			#wp-admin-bar-wp-feature-flags .wp-feature-group-divider hr {
-				margin: 4px 8px;
-				border: none;
-				border-top: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
 			#wp-admin-bar-wp-feature-flags .wp-feature-flag-item > .ab-item {
 				font-weight: bold;
 			}
@@ -580,6 +593,7 @@ class FeatureActions extends AdminBarMenu {
 			] );
 		}
 
+		$this->addSharedStyles();
 		$this->addAdminBarStyles();
 		$this->addAdminBarScript();
 	}
@@ -587,27 +601,6 @@ class FeatureActions extends AdminBarMenu {
 	private function addAdminBarStyles() {
 		?>
 		<style>
-			#wp-admin-bar-wp-feature-actions .wp-feature-group-heading > .ab-item {
-				opacity: 0.6;
-				text-transform: uppercase;
-				font-size: 11px !important;
-				pointer-events: none;
-				cursor: default;
-			}
-
-			#wp-admin-bar-wp-feature-actions .wp-feature-group-divider > .ab-item {
-				pointer-events: none;
-				cursor: default;
-				height: 0 !important;
-				padding: 0 !important;
-			}
-
-			#wp-admin-bar-wp-feature-actions .wp-feature-group-divider hr {
-				margin: 4px 8px;
-				border: none;
-				border-top: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
 			#wp-admin-bar-wp-feature-actions .wp-feature-action-item > .ab-item {
 				cursor: pointer;
 			}
@@ -832,6 +825,7 @@ class QuickLinks extends AdminBarMenu {
 
 		$counter = 0;
 		$this->renderItems( $adminBar, $this->links, $this->menuId, $counter );
+		$this->addSharedStyles();
 		$this->addAdminBarStyles();
 	}
 
@@ -879,27 +873,6 @@ class QuickLinks extends AdminBarMenu {
 	private function addAdminBarStyles() {
 		?>
 		<style>
-			#wp-admin-bar-wp-feature-links .wp-feature-group-heading > .ab-item {
-				opacity: 0.6;
-				text-transform: uppercase;
-				font-size: 11px !important;
-				pointer-events: none;
-				cursor: default;
-			}
-
-			#wp-admin-bar-wp-feature-links .wp-feature-group-divider > .ab-item {
-				pointer-events: none;
-				cursor: default;
-				height: 0 !important;
-				padding: 0 !important;
-			}
-
-			#wp-admin-bar-wp-feature-links .wp-feature-group-divider hr {
-				margin: 4px 8px;
-				border: none;
-				border-top: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
 			#wp-admin-bar-wp-feature-links .wp-feature-link-group > .ab-item {
 				font-weight: bold;
 			}
