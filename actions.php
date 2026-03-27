@@ -36,7 +36,7 @@ return [
 	],
 	'wcpp/path_whitelabel'     => [
 		'label'   => 'Enter Whitelabel Experience',
-		'state'   => static fn() => ( get_option( 'woocommerce-ppcp-data-common', [] )['wc_installation_path'] ?? '' ) === 'direct' ? '(active)' : '',
+		'state'   => static fn() => ( get_option( 'woocommerce-ppcp-data-common', [] )['wc_installation_path'] ?? '' ) !== 'core-profiler' ? '(active)' : '',
 		'changes' => [
 			[
 				'set_option_key',
@@ -48,7 +48,7 @@ return [
 	],
 	'wcpp/add_bcdc_override'   => [
 		'label'   => 'Add BCDC Override Flag',
-		'state'   => static fn() => get_option( 'woocommerce_paypal_payments_bcdc_migration_override' ) ? '(with override)' : '',
+		'state'   => static fn() => get_option( 'woocommerce_paypal_payments_bcdc_migration_override' ) ? '(active)' : '',
 		'changes' => [
 			[
 				'set_option',

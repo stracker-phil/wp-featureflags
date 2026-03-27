@@ -631,6 +631,7 @@ class FeatureActions extends AdminBarMenu {
 				font-size: 11px;
 				margin-left: 4px;
 				float: right;
+				line-height: 2.2;
 			}
 		</style>
 		<?php
