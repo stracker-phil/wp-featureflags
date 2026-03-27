@@ -3,6 +3,8 @@
  * Default feature actions, displayed in the admin bar.
  *
  * Each action has a 'label' and a list of 'changes' to apply.
+ * Optional: 'state' — a callable returning a string to display as an indicator next to the label.
+ *
  * Supported change types:
  *   ['set_option', 'option_name', $value]            - Sets an option to the given value
  *   ['set_option_key', 'option_name', 'key', $value] - Changes a single element of an option-array
@@ -22,6 +24,7 @@ return [
 	],
 	'wcpp/path_branded_only'   => [
 		'label'   => 'Enter Branded-Only Experience',
+		'state'   => static fn() => ( get_option( 'woocommerce-ppcp-data-common', [] )['wc_installation_path'] ?? '' ) === 'core-profiler' ? '(active)' : '',
 		'changes' => [
 			[
 				'set_option_key',
@@ -33,6 +36,7 @@ return [
 	],
 	'wcpp/path_whitelabel'     => [
 		'label'   => 'Enter Whitelabel Experience',
+		'state'   => static fn() => ( get_option( 'woocommerce-ppcp-data-common', [] )['wc_installation_path'] ?? '' ) === 'direct' ? '(active)' : '',
 		'changes' => [
 			[
 				'set_option_key',
@@ -44,6 +48,7 @@ return [
 	],
 	'wcpp/add_bcdc_override'   => [
 		'label'   => 'Add BCDC Override Flag',
+		'state'   => static fn() => get_option( 'woocommerce_paypal_payments_bcdc_migration_override' ) ? '(with override)' : '',
 		'changes' => [
 			[
 				'set_option',
@@ -58,6 +63,7 @@ return [
 	],
 	'wcpp/clear_bcdc_override' => [
 		'label'   => 'Clear BCDC Override Flag',
+		'state'   => static fn() => ! get_option( 'woocommerce_paypal_payments_bcdc_migration_override' ) ? '(active)' : '',
 		'changes' => [
 			[
 				'delete_option',

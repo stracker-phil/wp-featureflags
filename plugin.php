@@ -578,11 +578,19 @@ class FeatureActions extends AdminBarMenu {
 			}
 
 			$nodeId = $this->menuId . '_' . sanitize_key( $id );
+			$title  = esc_html( $action['label'] );
+
+			if ( ! empty( $action['state'] ) && is_callable( $action['state'] ) ) {
+				$stateValue = call_user_func( $action['state'] );
+				if ( is_string( $stateValue ) && '' !== $stateValue ) {
+					$title .= ' <span class="wp-feature-action-state">' . esc_html( $stateValue ) . '</span>';
+				}
+			}
 
 			$adminBar->add_node( [
 				'parent' => $this->menuId,
 				'id'     => $nodeId,
-				'title'  => esc_html( $action['label'] ),
+				'title'  => $title,
 				'href'   => '#',
 				'meta'   => [
 					'class'   => 'wp-feature-action-item',
@@ -616,6 +624,13 @@ class FeatureActions extends AdminBarMenu {
 
 			#wp-admin-bar-wp-feature-actions .wp-feature-action-item.error > .ab-item {
 				color: #cc0000 !important;
+			}
+
+			#wp-admin-bar-wp-feature-actions .wp-feature-action-state {
+				opacity: 0.6;
+				font-size: 11px;
+				margin-left: 4px;
+				float: right;
 			}
 		</style>
 		<?php
