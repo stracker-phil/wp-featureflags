@@ -1,6 +1,11 @@
 WP Feature-Flag Manager — Changelog
 =====================================
 
+1.3.0
+-----
+- New: Quick Links admin-bar menu for user-defined shortcut links to admin pages
+- New: links.sample.php config template with support for shorthand links, named links, hierarchical groups, dividers, and headings
+
 1.2.1
 -----
 - Fix: Feature filters not registered because plugins_loaded action never fired a second time; now called directly during bootstrap
