@@ -5,7 +5,7 @@
  * Plugin URI:  https://github.com/stracker-phil/wp-featureflags
  * Description: Development utility that allows toggling feature flags and running quick actions via the WP admin bar
  * Author:      Philipp Stracker
- * Version:     1.2.1
+ * Version:     1.3.0
  * @formatter:on
  */
 
@@ -755,6 +755,159 @@ class FeatureActions extends AdminBarMenu {
 	}
 }
 
+class QuickLinks extends AdminBarMenu {
+	private array $links;
+
+	public function __construct( array $links ) {
+		$this->menuId    = 'wp-feature-links';
+		$this->menuTitle = 'Quick Links';
+		$this->links     = $this->sanitizeLinks( $links );
+
+		if ( ! $this->links ) {
+			return;
+		}
+
+		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 102 );
+	}
+
+	private function sanitizeLinks( array $links ): array {
+		$valid = [];
+
+		foreach ( $links as $key => $entry ) {
+			$parsed = $this->parseEntry( $key, $entry );
+
+			if ( $parsed ) {
+				$valid[] = $parsed;
+			}
+		}
+
+		return $valid;
+	}
+
+	private function parseEntry( $key, $entry ): ?array {
+		// Divider string: '---' or '-'
+		if ( is_string( $entry ) && preg_match( '/^-+$/', $entry ) ) {
+			return [ 'type' => 'divider' ];
+		}
+
+		// Group heading string: 'Some Label'
+		if ( is_string( $entry ) ) {
+			return [ 'type' => 'heading', 'label' => $entry ];
+		}
+
+		// Named group: 'Group Label' => [ ... children ... ]
+		if ( is_string( $key ) && is_array( $entry ) ) {
+			$children = [];
+
+			foreach ( $entry as $childKey => $child ) {
+				$parsed = $this->parseEntry( $childKey, $child );
+
+				if ( $parsed ) {
+					$children[] = $parsed;
+				}
+			}
+
+			return $children
+				? [ 'type' => 'group', 'label' => $key, 'children' => $children ]
+				: null;
+		}
+
+		// Link array: [ label, href ] or [ 'label' => ..., 'href' => ... ]
+		if ( is_array( $entry ) ) {
+			$label = $entry['label'] ?? $entry[0] ?? null;
+			$href  = $entry['href'] ?? $entry[1] ?? null;
+
+			if ( $label && $href ) {
+				return [ 'type' => 'link', 'label' => $label, 'href' => $href ];
+			}
+		}
+
+		return null;
+	}
+
+	public function addAdminBarItems( $adminBar ): void {
+		if ( ! $this->addTopLevelMenu( $adminBar ) ) {
+			return;
+		}
+
+		$counter = 0;
+		$this->renderItems( $adminBar, $this->links, $this->menuId, $counter );
+		$this->addAdminBarStyles();
+	}
+
+	private function renderItems( $adminBar, array $items, string $parentId, int &$counter ): void {
+		foreach ( $items as $item ) {
+			$counter ++;
+			$nodeId = $this->menuId . '_item_' . $counter;
+
+			if ( 'divider' === $item['type'] ) {
+				$adminBar->add_node( [
+					'parent' => $parentId,
+					'id'     => $nodeId,
+					'title'  => '<hr>',
+					'href'   => false,
+					'meta'   => [ 'class' => 'wp-feature-group-divider' ],
+				] );
+			} elseif ( 'heading' === $item['type'] ) {
+				$adminBar->add_node( [
+					'parent' => $parentId,
+					'id'     => $nodeId,
+					'title'  => esc_html( $item['label'] ),
+					'href'   => false,
+					'meta'   => [ 'class' => 'wp-feature-group-heading' ],
+				] );
+			} elseif ( 'link' === $item['type'] ) {
+				$adminBar->add_node( [
+					'parent' => $parentId,
+					'id'     => $nodeId,
+					'title'  => esc_html( $item['label'] ),
+					'href'   => esc_url( $item['href'] ),
+				] );
+			} elseif ( 'group' === $item['type'] ) {
+				$adminBar->add_node( [
+					'parent' => $parentId,
+					'id'     => $nodeId,
+					'title'  => esc_html( $item['label'] ),
+					'href'   => false,
+					'meta'   => [ 'class' => 'wp-feature-link-group' ],
+				] );
+				$this->renderItems( $adminBar, $item['children'], $nodeId, $counter );
+			}
+		}
+	}
+
+	private function addAdminBarStyles() {
+		?>
+		<style>
+			#wp-admin-bar-wp-feature-links .wp-feature-group-heading > .ab-item {
+				opacity: 0.6;
+				text-transform: uppercase;
+				font-size: 11px !important;
+				pointer-events: none;
+				cursor: default;
+			}
+
+			#wp-admin-bar-wp-feature-links .wp-feature-group-divider > .ab-item {
+				pointer-events: none;
+				cursor: default;
+				height: 0 !important;
+				padding: 0 !important;
+			}
+
+			#wp-admin-bar-wp-feature-links .wp-feature-group-divider hr {
+				margin: 4px 8px;
+				border: none;
+				border-top: 1px solid rgba(255, 255, 255, 0.2);
+			}
+
+			#wp-admin-bar-wp-feature-links .wp-feature-link-group > .ab-item {
+				font-weight: bold;
+			}
+		</style>
+		<?php
+	}
+}
+
 add_action( 'plugins_loaded', static function (): void {
 	static $initialized = false;
 
@@ -767,7 +920,7 @@ add_action( 'plugins_loaded', static function (): void {
 	if ( ! is_dir( WP_FEATUREFLAGS_CONFIG_DIR ) ) {
 		wp_mkdir_p( WP_FEATUREFLAGS_CONFIG_DIR );
 	}
-	foreach ( [ 'flags', 'actions', 'snippets' ] as $name ) {
+	foreach ( [ 'flags', 'actions', 'links', 'snippets' ] as $name ) {
 		$target = WP_FEATUREFLAGS_CONFIG_DIR . '/' . $name . '.php';
 		$source = WP_FEATUREFLAGS_DIR . '/' . $name . '.sample.php';
 
@@ -786,6 +939,9 @@ add_action( 'plugins_loaded', static function (): void {
 
 	$featureActions = new FeatureActions( $actionsLoader->load() );
 	add_action( 'wp_ajax_wp_run_feature_action', [ $featureActions, 'handleAction' ] );
+
+	$linksLoader = new ConfigLoader( 'links', 'links.php', [ WP_FEATUREFLAGS_CONFIG_DIR ] );
+	new QuickLinks( $linksLoader->load() );
 
 	$snippet_file = WP_FEATUREFLAGS_CONFIG_DIR . '/snippets.php';
 	if ( file_exists( $snippet_file ) ) {
