@@ -44,7 +44,7 @@ wp-content/
 ## Configuration
 
 - **Add a flag:** Add an entry to `flags.php` with `label`, `filter`, and optional `default`/`display` keys.
-- **Add an action:** Add an entry to `actions.php` with `label` and a `changes` array of operations (`set_option`, `set_option_key`, `delete_option`, `do_action`).
+- **Add an action:** Add an entry to `actions.php` with `label` and a `changes` array of operations (`set_option`, `set_option_key`, `delete_option`, `do_action`). Optional `state` callable returns a string indicator shown next to the label (e.g. `'(active)'`).
 - **Add a quick link:** Add an entry to `links.php`. Supports shorthand `['Label', '/url']`, named `['label' => 'Label', 'href' => '/url']`, groups `'Group' => [...]`, dividers `'---'`, and plain string headings. The menu only appears when the array is non-empty.
 - **Group headings:** A plain string entry or an entry with only a `label` key renders as a non-clickable separator. A dash-only string (e.g. `'-'` or `'---'`) renders as an `<hr>` divider line.
 - **Local overrides:** Edit config files in `wp-content/wp-featureflags/`. For `flags.php` and `actions.php`, the config dir is checked first; if a file isn't found there, the base file from the plugin dir is used. The shipped samples `require` the base via `WP_FEATUREFLAGS_DIR` and `array_merge` on top, but a dev can return any array — merge, replace, or selectively `unset()` entries. `links.php` and `snippets.php` are user-only (no base file in the plugin dir). See [ADR-003](adr/003-local-override-pattern.md).

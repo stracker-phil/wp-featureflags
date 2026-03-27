@@ -5,6 +5,7 @@ WP Feature-Flag Manager — Changelog
 -----
 - New: Quick Links admin-bar menu for user-defined shortcut links to admin pages
 - New: links.sample.php config template with support for shorthand links, named links, hierarchical groups, dividers, and headings
+- New: Optional `state` callable on actions that displays a status indicator next to the menu label
 
 1.2.1
 -----
