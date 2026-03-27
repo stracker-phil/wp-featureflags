@@ -49,6 +49,17 @@ register_activation_hook( __FILE__, static function ( bool $network_wide = false
 	update_option( 'active_plugins', array_values( $plugins ) );
 } );
 
+function ajax_url(): string {
+	$url = admin_url( 'admin-ajax.php' );
+
+	$param = $_GET['featureflags'] ?? null;
+	if ( null !== $param && in_array( $param, [ '0', 'off' ], true ) ) {
+		$url = add_query_arg( 'featureflags', $param, $url );
+	}
+
+	return $url;
+}
+
 class ConfigLoader {
 	private string $id;
 	private string $fileName;
@@ -374,7 +385,7 @@ class FeatureFlags extends AdminBarMenu {
 				const state = item.dataset.flagState;
 
 				const xhr = new XMLHttpRequest();
-				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+				xhr.open('POST', '<?php echo ajax_url(); ?>', true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
 				xhr.onload = function() {
@@ -465,6 +476,14 @@ class FeatureFlags extends AdminBarMenu {
 	}
 
 	public function addFeatureFilters(): void {
+		// Allow ?featureflags=0 or ?featureflags=off to suppress all flag-override
+		// filters for the current request — useful when a flag causes a fatal error
+		// and the admin bar is no longer reachable.
+		$param = $_GET['featureflags'] ?? null;
+		if ( null !== $param && in_array( $param, [ '0', 'off' ], true ) ) {
+			return;
+		}
+
 		foreach ( $this->featureFlags as $id => $flag ) {
 			$state = $this->getFeatureState( $id );
 
@@ -668,7 +687,7 @@ class FeatureActions extends AdminBarMenu {
 
 				const pingServer = (onDone) => {
 					const xhrPing = new XMLHttpRequest();
-					xhrPing.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+					xhrPing.open('POST', '<?php echo ajax_url(); ?>', true);
 					xhrPing.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 					xhrPing.onload = onDone;
 					xhrPing.onerror = onDone;
@@ -676,7 +695,7 @@ class FeatureActions extends AdminBarMenu {
 				}
 
 				const xhr = new XMLHttpRequest();
-				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
+				xhr.open('POST', '<?php echo ajax_url(); ?>', true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
 				xhr.onload = function() {
@@ -936,6 +955,13 @@ add_action( 'plugins_loaded', static function (): void {
 	if ( file_exists( $snippet_file ) ) {
 		require_once $snippet_file;
 	}
+
+	// On fatal-error pages, show a link to retry with flag overrides disabled.
+	add_filter( 'wp_php_error_message', static function ( string $message ): string {
+		$url = add_query_arg( 'featureflags', 'off' );
+
+		return $message . '<hr><p><a href="' . esc_url( $url ) . '">Retry without the Feature-Flag override</a></p>';
+	} );
 
 	$clean_up = static function () {
 		global $wpdb;

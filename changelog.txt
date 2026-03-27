@@ -6,6 +6,8 @@ WP Feature-Flag Manager — Changelog
 - New: Quick Links admin-bar menu for user-defined shortcut links to admin pages
 - New: links.sample.php config template with support for shorthand links, named links, hierarchical groups, dividers, and headings
 - New: Optional `state` callable on actions that displays a status indicator next to the menu label
+- New: Emergency bypass via `?featureflags=off` query param skips flag-override filters for the current request
+- New: Fatal-error recovery link shown on WordPress error pages to retry with flags disabled
 
 1.2.1
 -----
