@@ -4,6 +4,7 @@ WP Feature-Flag Manager — Changelog
 1.2.1
 -----
 - Fix: Feature filters not registered because plugins_loaded action never fired a second time; now called directly during bootstrap
+- Fix: Actions that modify onboarding presets now reliably apply by pinging the server before page reload, ensuring transients are fully refreshed
 - Improve: Plugin loads before all others via activation hook reordering and plugins_loaded priority -100
 
 1.2.0
