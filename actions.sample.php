@@ -6,6 +6,6 @@
  * Use WP_FEATUREFLAGS_DIR to reference the base config shipped with the plugin.
  */
 
-$my_actions = array();
+$my_actions = [];
 
 return array_merge( (array) require WP_FEATUREFLAGS_DIR . '/actions.php', $my_actions );

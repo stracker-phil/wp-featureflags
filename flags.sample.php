@@ -6,6 +6,6 @@
  * Use WP_FEATUREFLAGS_DIR to reference the base config shipped with the plugin.
  */
 
-$my_flags = array();
+$my_flags = [];
 
 return array_merge( (array) require WP_FEATUREFLAGS_DIR . '/flags.php', $my_flags );
