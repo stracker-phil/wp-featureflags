@@ -5,7 +5,7 @@
  * Plugin URI:  https://github.com/stracker-phil/wp-featureflags
  * Description: Development utility that allows toggling feature flags and running quick actions via the WP admin bar
  * Author:      Philipp Stracker
- * Version:     1.3.0
+ * Version:     1.4.0
  * @formatter:on
  */
 
@@ -171,8 +171,11 @@ abstract class AdminBarMenu {
 
 class FeatureFlags extends AdminBarMenu {
 	private const OPTION_NAME = 'wp_feature_flags';
+	private const URL_PARAM   = 'ff';
 
 	private array $featureFlags = [];
+	private array $urlKeys      = [];
+	private array $urlLabels    = [];
 
 	public function __construct( array $featureFlags ) {
 		$this->menuId       = 'wp-feature-flags';
@@ -183,6 +186,7 @@ class FeatureFlags extends AdminBarMenu {
 			return;
 		}
 
+		$this->applyUrlOverrides();
 		$this->addFeatureFilters();
 
 		add_action( 'admin_bar_menu', [ $this, 'addAdminBarItems' ], 100 );
@@ -244,7 +248,10 @@ class FeatureFlags extends AdminBarMenu {
 				'id'     => $featureId,
 				'title'  => esc_html( $flag['label'] ),
 				'href'   => '#',
-				'meta'   => [ 'class' => 'wp-feature-flag-item' ],
+				'meta'   => [
+					'class' => 'wp-feature-flag-item',
+					'title' => '?' . self::URL_PARAM . '[' . $this->urlKeyFor( $id ) . ']=on',
+				],
 			] );
 
 			$states = [
@@ -385,7 +392,7 @@ class FeatureFlags extends AdminBarMenu {
 				const state = item.dataset.flagState;
 
 				const xhr = new XMLHttpRequest();
-				xhr.open('POST', '<?php echo ajax_url(); ?>', true);
+				xhr.open('POST', '<?php echo admin_url( 'admin-ajax.php' ); ?>', true);
 				xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
 				xhr.onload = function() {
@@ -442,6 +449,147 @@ class FeatureFlags extends AdminBarMenu {
 		<?php
 	}
 
+	private function urlKeyMap(): array {
+		if ( $this->urlKeys ) {
+			return $this->urlKeys;
+		}
+
+		$shortKeys = [];
+
+		foreach ( $this->featureFlags as $id => $flag ) {
+			if ( $this->isGroupHeading( $flag ) ) {
+				continue;
+			}
+
+			$this->urlKeys[ $id ]   = $id;
+			$this->urlLabels[ $id ] = $id;
+
+			if ( ! empty( $flag['url'] ) ) {
+				$key                    = sanitize_key( $flag['url'] );
+				$this->urlKeys[ $key ]  = $id;
+				$this->urlLabels[ $id ] = $key;
+				continue;
+			}
+
+			$shortKeys[ $id ] = sanitize_key( substr( strrchr( "/$id", '/' ), 1 ) );
+		}
+
+		foreach ( $shortKeys as $id => $key ) {
+			if ( isset( $this->urlKeys[ $key ] ) ) {
+				continue;
+			}
+
+			$this->urlKeys[ $key ]  = $id;
+			$this->urlLabels[ $id ] = $key;
+		}
+
+		return $this->urlKeys;
+	}
+
+	/**
+	 * The query-parameter key to advertise for the given flag.
+	 */
+	private function urlKeyFor( string $id ): string {
+		$this->urlKeyMap();
+
+		return $this->urlLabels[ $id ] ?? $id;
+	}
+
+	private function parseState( string $value ): ?string {
+		$value = strtolower( trim( $value ) );
+
+		// A bare "?ff[flag]" means "turn it on".
+		if ( in_array( $value, [ '', 'on', '1', 'true', 'yes', 'enable', 'enabled' ], true ) ) {
+			return 'on';
+		}
+
+		if ( in_array( $value, [ 'off', '0', 'false', 'no', 'disable', 'disabled' ], true ) ) {
+			return 'off';
+		}
+
+		if ( in_array( $value, [ 'default', 'reset', 'auto' ], true ) ) {
+			return 'default';
+		}
+
+		return null;
+	}
+
+	/**
+	 * Applies flag states passed via URL, e.g. "?ff[js_sdk_v6]=on&ff[axo_enabled]=off".
+	 *
+	 * Runs before the feature filters are registered, so an override takes
+	 * effect in the very request that sets it. The key "all" targets every flag.
+	 */
+	private function applyUrlOverrides(): void {
+		$params = $_GET[ self::URL_PARAM ] ?? null;
+
+		if ( ! is_array( $params ) || ! $params ) {
+			return;
+		}
+
+		add_action( 'init', [ $this, 'stripUrlOverrides' ], 0 );
+
+		$map = $this->urlKeyMap();
+
+		foreach ( $params as $key => $value ) {
+			if ( is_array( $value ) ) {
+				continue;
+			}
+
+			$state = $this->parseState( (string) $value );
+
+			if ( null === $state ) {
+				continue;
+			}
+
+			if ( in_array( (string) $key, [ 'all', '*' ], true ) ) {
+				$targets = array_values( array_unique( $map ) );
+			} elseif ( isset( $map[ $key ] ) ) {
+				$targets = [ $map[ $key ] ];
+			} else {
+				continue;
+			}
+
+			foreach ( $targets as $id ) {
+				if ( $state !== $this->getFeatureState( $id ) ) {
+					$this->setFeatureState( $id, $state );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Redirects to the current URL without the flag parameters.
+	 *
+	 * Hooked to "init" because wp_safe_redirect() is pluggable and therefore
+	 * not defined yet while the overrides are applied on "plugins_loaded".
+	 */
+	public function stripUrlOverrides(): void {
+		if (
+			'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? 'GET' )
+			|| empty( $_SERVER['REQUEST_URI'] )
+			|| wp_doing_ajax()
+			|| wp_doing_cron()
+			|| defined( 'WP_CLI' )
+			|| defined( 'REST_REQUEST' )
+			|| headers_sent()
+		) {
+			return;
+		}
+
+		$requestUri = (string) $_SERVER['REQUEST_URI'];
+		$path       = (string) parse_url( $requestUri, PHP_URL_PATH );
+		$query      = [];
+
+		parse_str( (string) parse_url( $requestUri, PHP_URL_QUERY ), $query );
+		unset( $query[ self::URL_PARAM ] );
+
+		$target = ( $path ?: '/' ) . ( $query ? '?' . http_build_query( $query ) : '' );
+
+		wp_safe_redirect( $target, 302 );
+		exit;
+	}
+
 	public function handleToggle(): void {
 		$valid_states = [ 'default', 'on', 'off' ];
 
@@ -455,8 +603,6 @@ class FeatureFlags extends AdminBarMenu {
 			|| ! wp_verify_nonce( $_REQUEST['nonce'], 'wp_toggle_feature_flag' )
 		) {
 			wp_send_json_error( 'Invalid request' );
-
-			return;
 		}
 
 		$id    = sanitize_text_field( $_REQUEST['id'] );
@@ -467,8 +613,6 @@ class FeatureFlags extends AdminBarMenu {
 			|| ! in_array( $state, $valid_states, true )
 		) {
 			wp_send_json_error( 'Invalid feature flag or state' );
-
-			return;
 		}
 
 		$this->setFeatureState( $id, $state );
@@ -649,8 +793,6 @@ class FeatureActions extends AdminBarMenu {
 				opacity: 0.6;
 				font-size: 11px;
 				margin-left: 4px;
-				float: right;
-				line-height: 2.2;
 			}
 		</style>
 		<?php
@@ -737,16 +879,12 @@ class FeatureActions extends AdminBarMenu {
 			|| ! wp_verify_nonce( $_REQUEST['nonce'], self::NONCE_ACTION )
 		) {
 			wp_send_json_error( 'Invalid request' );
-
-			return;
 		}
 
 		$id = sanitize_text_field( $_REQUEST['id'] );
 
 		if ( ! array_key_exists( $id, $this->actions ) ) {
 			wp_send_json_error( 'Unknown action' );
-
-			return;
 		}
 
 		$action = $this->actions[ $id ];
