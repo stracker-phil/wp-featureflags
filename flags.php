@@ -80,6 +80,11 @@ $wc_pp_feature_flags = [
 		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.store_sync_enabled',
 		'default' => static fn() => getenv( 'PCP_STORE_SYNC_ENABLED' ) === '1',
 	],
+	'wcpp/js_sdk_v6'                       => [
+		'label'   => 'JS SDK V6',
+		'filter'  => 'woocommerce.feature-flags.woocommerce_paypal_payments.sdk_v6_enabled',
+		'default' => static fn() => getenv( 'PCP_SDK_V6_ENABLED' ) === '1',
+	],
 
 	// Plugin settings.
 	'PayPal Payments - Setting Override',
